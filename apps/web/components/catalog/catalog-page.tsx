@@ -4,7 +4,7 @@ import { PackageIcon, SearchIcon } from "lucide-react"
 import { useState } from "react"
 import { ActionSheet, type ActionItem } from "@/components/kit/action-sheet"
 import { Avatar } from "@/components/kit/avatar"
-import { ChoiceChips } from "@/components/kit/chips"
+import { ChoiceChips, Chips } from "@/components/kit/chips"
 import { Foot, Group, Row } from "@/components/kit/group"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { SearchBox } from "@/components/kit/search-box"
@@ -24,6 +24,7 @@ import { usePermission } from "@/lib/use-gate"
 import { useLocation } from "@/lib/use-location"
 import { cn } from "@/lib/utils"
 import { useProductActive } from "./active-button"
+import { CategoryFilter } from "./category-filter"
 import { DeleteProductDialog } from "./delete-product-button"
 import { ProductDialog } from "./product-dialog"
 import { ServiceDialog } from "./service-dialog"
@@ -35,7 +36,8 @@ const productsSection = navItems.find((item) => item.key === "products")!
 // whoever may see them (products.view; adding, editing and deleting each
 // take their permission), as the prototype's list: by name, the active ones
 // unless the «Nofaol» chip is on (each chip says how many), searched by
-// name (and SKU). A product is a row that leads to its page: its unit, SKU
+// name (and SKU), the products of a category (or with none) under the
+// «Kategoriya» chip. A product is a row that leads to its page: its unit, SKU
 // and the current location's stock under its name, its price per unit at
 // its end. A service is handled in a sheet of actions its row opens.
 export function CatalogPage({ kind }: { kind: ProductKind }) {
@@ -43,10 +45,13 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   const companyId = gate?.company.id ?? null
   const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const [filter, update] = useCatalogFilter()
+  const isProduct = kind === "product"
+  // A service has no category: its list is never narrowed to one.
+  const category = isProduct ? filter.category : null
   // The stock shown is the current location's (logic/products.md, section 5).
   const location = useLocation()
   const locationId = location.current?.id ?? null
-  const products = useProducts(companyId, { kind, ...filter, locationId })
+  const products = useProducts(companyId, { kind, ...filter, category, locationId })
   // The chips' counts: every active record and every inactive one, whatever
   // is searched. The active one is the list itself when nothing is.
   const active = useProducts(companyId, { kind, status: "active", search: "", page: 1, locationId })
@@ -58,14 +63,15 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   const [acting, setActing] = useState<Product | null>(null)
   const [editing, setEditing] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState<Product | null>(null)
-  const isProduct = kind === "product"
   const noun = isProduct ? "Mahsulot" : "Xizmat"
   const plural = isProduct ? "Mahsulotlar" : "Xizmatlar"
   const whose = isProduct ? "Kompaniyangiz mahsulotlari" : "Kompaniyangiz xizmatlari"
   const activeCount = active.data && !active.isPlaceholderData ? active.data.total : undefined
   const inactiveCount = inactive.data && !inactive.isPlaceholderData ? inactive.data.total : undefined
 
-  const unfiltered = filter.status === "active" && !filter.search
+  const unfiltered = filter.status === "active" && !filter.search && category === null
+  // A search or a category that finds nothing is a filter to change.
+  const narrowed = filter.search !== "" || category !== null
   // A list of the previous filter may stay on screen while the next loads;
   // "nothing found" may not.
   const settling = products.isPlaceholderData && products.data?.total === 0
@@ -128,26 +134,30 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
       <SectionTabs item={productsSection} permissions={gate.permissions} />
       <Toolbar>
         <SearchBox value={filter.search} onSearch={(search) => update({ search })} placeholder={isProduct ? "Nom yoki artikul" : "Nom"} />
-        <ChoiceChips
-          label="Holat"
-          value={filter.status}
-          onChange={(status) => update({ status: status === "inactive" ? "inactive" : "active" })}
-          options={[
-            { value: "active", label: "Faol", count: activeCount },
-            { value: "inactive", label: "Nofaol", count: inactiveCount },
-          ]}
-        />
+        <Chips>
+          <ChoiceChips
+            bare
+            label="Holat"
+            value={filter.status}
+            onChange={(status) => update({ status: status === "inactive" ? "inactive" : "active" })}
+            options={[
+              { value: "active", label: "Faol", count: activeCount },
+              { value: "inactive", label: "Nofaol", count: inactiveCount },
+            ]}
+          />
+          {isProduct && <CategoryFilter companyId={companyId} value={category} onChange={(next) => update({ category: next })} />}
+        </Chips>
       </Toolbar>
       {loading && <ListLoading rows={6} />}
       {products.isError && <Failed error={products.error} onRetry={() => products.refetch()} />}
       {!loading && !products.isError && page?.total === 0 && (
         <EmptyState
-          icon={filter.search ? SearchIcon : PackageIcon}
-          title={unfiltered ? `Hali ${noun.toLowerCase()} yo'q` : filter.search ? `${plural} topilmadi` : `Nofaol ${noun.toLowerCase()} yo'q`}
+          icon={narrowed ? SearchIcon : PackageIcon}
+          title={unfiltered ? `Hali ${noun.toLowerCase()} yo'q` : narrowed ? `${plural} topilmadi` : `Nofaol ${noun.toLowerCase()} yo'q`}
           description={
             unfiltered
               ? `Birinchi ${noun.toLowerCase()}ni «${noun} qo'shish» tugmasi orqali qo'shing.`
-              : filter.search
+              : narrowed
                 ? "Qidiruv yoki filtrni o'zgartirib ko'ring."
                 : undefined
           }

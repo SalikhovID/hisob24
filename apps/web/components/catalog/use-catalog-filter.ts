@@ -2,18 +2,28 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef } from "react"
+import type { CategoryChoice } from "./category-filter"
 
 // CatalogFilter narrows a catalog list: the active or the inactive records,
-// a search and the page. The kind is the page's.
+// a search, a category of the products (or none) and the page. The kind is
+// the page's.
 export interface CatalogFilter {
   status: "active" | "inactive"
   search: string
+  category: CategoryChoice
   page: number
 }
 
-// useCatalogFilter keeps the list's status, search and page in the address,
-// so a reload or the back button finds the same list. Any change but the
-// page itself starts again from the first page.
+// categoryOf reads ?category=: a category's id, or none; anything else is
+// every category.
+function categoryOf(raw: string | null): CategoryChoice {
+  if (raw === "none") return "none"
+  return raw !== null && /^[1-9]\d*$/.test(raw) ? Number(raw) : null
+}
+
+// useCatalogFilter keeps the list's status, search, category and page in the
+// address, so a reload or the back button finds the same list. Any change
+// but the page itself starts again from the first page.
 export function useCatalogFilter() {
   const params = useSearchParams()
   const pathname = usePathname()
@@ -23,6 +33,7 @@ export function useCatalogFilter() {
     () => ({
       status: params.get("status") === "inactive" ? "inactive" : "active",
       search: params.get("search") ?? "",
+      category: categoryOf(params.get("category")),
       page: Math.max(1, Number(params.get("page")) || 1),
     }),
     [params],
@@ -43,6 +54,7 @@ export function useCatalogFilter() {
       const query = new URLSearchParams()
       if (next.status === "inactive") query.set("status", "inactive")
       if (next.search) query.set("search", next.search)
+      if (next.category !== null) query.set("category", String(next.category))
       if (next.page > 1) query.set("page", String(next.page))
       const search = query.toString()
       router.replace(search ? `${pathname}?${search}` : pathname)

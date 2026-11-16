@@ -395,6 +395,8 @@ export interface ProductFilter {
   page: number
   // locationId keeps the stock shown to one location (the current one); null is every location of the member.
   locationId?: number | null
+  // category keeps the products of a category, or the ones with none ("none"); null or nothing is every product.
+  category?: number | "none" | null
 }
 
 // useStockSummary is a page of the warehouse's «Qoldiq» table
@@ -420,7 +422,14 @@ export function useProducts(companyId: number | null, filter: ProductFilter) {
       call(
         api.GET("/app/products", {
           params: {
-            query: { kind: filter.kind, status: filter.status, search: filter.search || undefined, page: filter.page, location_id: filter.locationId ?? undefined },
+            query: {
+              kind: filter.kind,
+              status: filter.status,
+              search: filter.search || undefined,
+              category_id: filter.category === undefined || filter.category === null ? undefined : String(filter.category),
+              page: filter.page,
+              location_id: filter.locationId ?? undefined,
+            },
           },
         }),
       ),

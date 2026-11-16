@@ -198,3 +198,52 @@ test("with no product yet the page says so, and what to do", async () => {
   expect(screen.getByText("Birinchi mahsulotni «Mahsulot qo'shish» tugmasi orqali qo'shing.")).toBeInTheDocument()
   expect(screen.getByText("Kompaniyangiz mahsulotlari · 0 ta")).toBeInTheDocument()
 })
+
+test("the «Kategoriya» chip narrows the products to a category, or to the ones with none; the address keeps it", async () => {
+  const { olma } = seedCatalog()
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Mevalar", position: 1 }, { id: 7002, companyId: 1, name: "Ichimliklar", position: 2 })
+  olma.categoryId = 7001
+  await signIn(ALI)
+  setLocation("/products")
+  const { user } = renderWithProviders(<CatalogPage kind="product" />)
+  await list("Mahsulotlar")
+
+  expect(screen.getByRole("button", { name: "Kategoriya" })).toHaveAttribute("aria-pressed", "false")
+  await user.click(screen.getByRole("button", { name: "Kategoriya" }))
+  let sheet = await screen.findByRole("dialog", { name: "Kategoriya" })
+  expect(within(sheet).getAllByRole("option").map((option) => option.textContent)).toEqual(["Hamma kategoriyalar", "Mevalar", "Ichimliklar", "Kategoriyasiz"])
+  await user.click(within(sheet).getByRole("option", { name: "Mevalar" }))
+  await waitFor(() => expect(currentUrl()).toBe("/products?category=7001"))
+  await waitFor(async () => expect(rows(await list("Mahsulotlar")).map((row) => parts(row).title)).toEqual(["Olma"]))
+  expect(screen.getByRole("button", { name: "Mevalar" })).toHaveAttribute("aria-pressed", "true")
+
+  await user.click(screen.getByRole("button", { name: "Mevalar" }))
+  sheet = await screen.findByRole("dialog", { name: "Kategoriya" })
+  await user.click(within(sheet).getByRole("option", { name: "Kategoriyasiz" }))
+  await waitFor(() => expect(currentUrl()).toBe("/products?category=none"))
+  await waitFor(async () => expect(rows(await list("Mahsulotlar")).map((row) => parts(row).title)).toEqual(["Nok"]))
+
+  await user.click(screen.getByRole("button", { name: "Kategoriyasiz" }))
+  sheet = await screen.findByRole("dialog", { name: "Kategoriya" })
+  await user.click(within(sheet).getByRole("option", { name: "Ichimliklar" }))
+  expect(await screen.findByText("Mahsulotlar topilmadi")).toBeInTheDocument()
+  expect(screen.getByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).toBeInTheDocument()
+})
+
+test("a category in the address narrows the list from the start; the services have no category chip", async () => {
+  const { olma } = seedCatalog()
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Mevalar", position: 1 })
+  olma.categoryId = 7001
+  await signIn(ALI)
+  setLocation("/products?category=7001")
+  const { unmount } = renderWithProviders(<CatalogPage kind="product" />)
+
+  await waitFor(async () => expect(rows(await list("Mahsulotlar")).map((row) => parts(row).title)).toEqual(["Olma"]))
+  expect(await screen.findByRole("button", { name: "Mevalar" })).toHaveAttribute("aria-pressed", "true")
+  unmount()
+
+  setLocation("/services")
+  renderWithProviders(<CatalogPage kind="service" />)
+  await list("Xizmatlar")
+  expect(screen.queryByRole("button", { name: "Kategoriya" })).not.toBeInTheDocument()
+})
