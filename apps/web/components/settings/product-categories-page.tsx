@@ -8,8 +8,9 @@ import { OrderedRows } from "@/components/kit/ordered-rows"
 import { PageTitle, PlusButton } from "@/components/kit/page-title"
 import { Failed, ListLoading } from "@/components/states"
 import { api, call } from "@/lib/api"
+import { can } from "@/lib/permissions"
 import { productCategoriesKey, useProductCategories } from "@/lib/queries"
-import type { ProductCategory } from "@/lib/types"
+import type { Permission, ProductCategory } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
 import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteDialog } from "./delete-button"
@@ -22,12 +23,14 @@ type Sheet = { add: true } | { act: ProductCategory } | { rename: ProductCategor
 // ProductCategoriesPage is the categories of the company's products
 // (logic/products.md, 3.4), for whoever may see the settings, as the
 // finance categories' page: the categories in the order the owner put
-// them in, each a row opening a sheet of its actions (renaming, deleting:
-// one with products is refused, the refusal saying how many); the plus adds
-// one at the end; the «Tartiblash» mode orders them.
+// them in, each a row opening a sheet of its actions (renaming:
+// settings.edit; deleting: settings.delete, one with products refused, the
+// refusal saying how many); the plus adds one at the end (settings.create);
+// the «Tartiblash» mode orders them (settings.edit).
 export function ProductCategoriesPage() {
   const gate = usePermission("settings.view")
   const companyId = gate?.company.id ?? null
+  const allowed = (permission: Permission) => can(gate?.permissions, permission)
   const categories = useProductCategories(companyId)
   const queryClient = useQueryClient()
   const queryKey = productCategoriesKey(companyId)
@@ -37,9 +40,10 @@ export function ProductCategoriesPage() {
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const close = (open: boolean) => !open && setSheet(null)
   const actions = (category: ProductCategory) => [
-    { label: "Nomini o'zgartirish", onSelect: () => setSheet({ rename: category }) },
-    { label: "O'chirish", danger: true, onSelect: () => setSheet({ remove: category }) },
+    ...(allowed("settings.edit") ? [{ label: "Nomini o'zgartirish", onSelect: () => setSheet({ rename: category }) }] : []),
+    ...(allowed("settings.delete") ? [{ label: "O'chirish", danger: true, onSelect: () => setSheet({ remove: category }) }] : []),
   ]
+  const acts = allowed("settings.edit") || allowed("settings.delete")
 
   if (!gate || companyId === null) return null
   const acting = sheet && "act" in sheet ? sheet.act : null
@@ -50,7 +54,7 @@ export function ProductCategoriesPage() {
         title="Mahsulot kategoriyalari"
         description="Mahsulotlar kategoriya bo'yicha guruhlanadi."
         back={{ href: "/settings", label: "Sozlamalar" }}
-        action={<PlusButton label="Kategoriya qo'shish" onClick={() => setSheet({ add: true })} />}
+        action={allowed("settings.create") && <PlusButton label="Kategoriya qo'shish" onClick={() => setSheet({ add: true })} />}
       />
       {categories.isPending && <ListLoading rows={2} mark="none" />}
       {categories.isError && <Failed error={categories.error} onRetry={() => categories.refetch()} />}
@@ -73,12 +77,12 @@ export function ProductCategoriesPage() {
           getId={(category) => String(category.id)}
           getLabel={(category) => category.name}
           onReorder={(ids) => reorder.mutate(ids.map(Number))}
-          canOrder
+          canOrder={allowed("settings.edit")}
           row={(category, handle) =>
             handle ? (
               <Row compact media={handle} title={<span>{category.name}</span>} />
             ) : (
-              <Row compact onClick={() => setSheet({ act: category })} title={<span>{category.name}</span>} chevron={false} />
+              <Row compact onClick={acts ? () => setSheet({ act: category }) : undefined} title={<span>{category.name}</span>} chevron={false} />
             )
           }
         />

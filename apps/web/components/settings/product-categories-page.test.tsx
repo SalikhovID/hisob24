@@ -1,8 +1,9 @@
 import { act, screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
-import { ALI, db, seedCatalog } from "@/mocks/data"
+import { ALI, db, seedCatalog, VALI } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
-import { signIn } from "@/test/session"
+import { giveRole } from "@/test/roles"
+import { chooseCompany, signIn } from "@/test/session"
 import { ProductCategoriesPage } from "./product-categories-page"
 
 const namesOf = (list: HTMLElement) =>
@@ -93,4 +94,24 @@ test("the categories are put in order in the «Tartiblash» mode, and the order 
   expect(namesOf(categories())).toEqual(["Shirinliklar", "Ichimliklar"])
   const saved = () => db.productCategories.toSorted((a, b) => a.position - b.position).map((c) => c.name)
   await waitFor(() => expect(saved()).toEqual(["Shirinliklar", "Ichimliklar"]))
+})
+
+test("settings.view alone reads the categories without the way to change them; each change takes its own permission", async () => {
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Ichimliklar", position: 1 }, { id: 7002, companyId: 1, name: "Shirinliklar", position: 2 })
+  giveRole(VALI, 1, "Kuzatuvchi", ["settings.view"])
+  await signIn(VALI)
+  await chooseCompany(1)
+  const { unmount } = renderWithProviders(<ProductCategoriesPage />)
+
+  await waitFor(() => expect(namesOf(categories())).toEqual(["Ichimliklar", "Shirinliklar"]))
+  expect(within(categories()).queryAllByRole("button")).toHaveLength(0)
+  expect(screen.queryByRole("button", { name: "Kategoriya qo'shish" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Tartiblash" })).not.toBeInTheDocument()
+  unmount()
+
+  giveRole(VALI, 1, "O'chiruvchi", ["settings.view", "settings.delete"])
+  const { user } = renderWithProviders(<ProductCategoriesPage />)
+  await waitFor(() => expect(namesOf(categories())).toEqual(["Ichimliklar", "Shirinliklar"]))
+  await user.click(within(categories()).getByRole("button", { name: /^Ichimliklar/ }))
+  expect(within(await screen.findByRole("menu")).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["O'chirish"])
 })
