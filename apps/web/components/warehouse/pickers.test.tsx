@@ -41,3 +41,21 @@ test("without categories the product sheet holds no chips", async () => {
   await waitFor(() => expect(offered(sheet)).toEqual(["Nok", "Olma"]))
   expect(within(sheet).queryByRole("radiogroup", { name: "Kategoriya" })).not.toBeInTheDocument()
 })
+
+test("every opening of the product sheet starts from «Hammasi»", async () => {
+  const { olma } = seedCatalog()
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Mevalar", position: 1 })
+  olma.categoryId = 7001
+  await signIn(ALI)
+  const { user } = renderWithProviders(<ProductPicker companyId={1} value={null} onChange={() => {}} />)
+
+  let sheet = await open(user)
+  await user.click(await within(sheet).findByRole("radio", { name: "Mevalar" }))
+  await waitFor(() => expect(offered(sheet)).toEqual(["Olma"]))
+  await user.keyboard("{Escape}")
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Mahsulot" })).not.toBeInTheDocument())
+
+  sheet = await open(user)
+  expect(await within(sheet).findByRole("radio", { name: "Hammasi" })).toHaveAttribute("aria-checked", "true")
+  await waitFor(() => expect(offered(sheet)).toEqual(["Nok", "Olma"]))
+})

@@ -112,10 +112,13 @@ export function ProductPicker({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [category, setCategory] = useState<number | null>(null)
-  // Every opening starts with nothing typed.
+  // Every opening starts with nothing typed, from every category.
   const show = (next: boolean) => {
     setOpen(next)
-    if (next) setQuery("")
+    if (next) {
+      setQuery("")
+      setCategory(null)
+    }
   }
   // The sheet asks once it is open.
   const suggestions = useProductSuggestions(open ? companyId : null, query, kinds, category)
