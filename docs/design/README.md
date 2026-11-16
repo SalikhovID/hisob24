@@ -1614,7 +1614,7 @@ Kontrast (WCAG, hisoblangan):
 Ular uchun ekran yo'q. Dizaynda ular uchun joy qoldirish mumkin, lekin ishlashi alohida kelishiladi.
 
 - **Savdo va ombor.** Sotuv, chek; qoldiqni qo'lda tuzatish (inventarizatsiya); lokatsiyalar orasida ko'chirish; minimal qoldiq ogohlantirishi.
-- **Mahsulot.** Kategoriyalar, rasm, shtrix-kod skaneri, narx tarixi.
+- **Mahsulot.** Rasm, shtrix-kod skaneri, narx tarixi.
 - **Hisobot va eksport.** Hisobotlar va statistika; Excel import / eksport.
 - **Bildirishnomalar.** Bot orqali eslatmalar; buyurtma izohlari, fayllar, takrorlanuvchi buyurtmalar, muddatda vaqt.
 - **Tiklash va almashtirish.** O'chirilgan yozuvlarni tiklash; mijoz yoki buyurtma turini almashtirish; buyurtmani boshqa lokatsiyaga ko'chirish.
@@ -1632,7 +1632,7 @@ Ular uchun ekran yo'q. Dizaynda ular uchun joy qoldirish mumkin, lekin ishlashi 
 | Mahsulotlar | «Mahsulot qo'shildi», «Mahsulot saqlandi», «Mahsulot nofaol qilindi», «Mahsulot faollashtirildi», «Mahsulot o'chirildi»; xizmatda xuddi shunday («Xizmat qo'shildi» va h.k.) |
 | Ombor | «Xarid qo'shildi», «Xarid saqlandi», «Xarid o'chirildi»; «Ta'minotchi qo'shildi», «Ta'minotchi saqlandi», «Ta'minotchi nofaol qilindi», «Ta'minotchi faollashtirildi», «Ta'minotchi o'chirildi»; «To'lov qo'shildi», «To'lov saqlandi», «To'lov o'chirildi» |
 | Xodimlar | «Xodim qo'shildi», «Ism o'zgartirildi», «Xodim o'chirildi», «Rol o'zgartirildi», «Lokatsiyalar o'zgartirildi» |
-| Sozlamalar | «Tur qo'shildi», «Tur nomi o'zgartirildi», «Tur o'chirildi»; «Buyurtma turi qo'shildi», «Buyurtma turi nomi o'zgartirildi», «Buyurtma turi o'chirildi»; «Maydon qo'shildi», «Maydon saqlandi», «Maydon o'chirildi»; «Bosqich qo'shildi», «Bosqich saqlandi», «Bosqich o'chirildi»; «Dropdown qo'shildi», «Dropdown nomi o'zgartirildi», «Dropdown o'chirildi»; «Variant nomi o'zgartirildi», «Variant nofaol qilindi», «Variant faollashtirildi», «Variant o'chirildi»; «Rol yaratildi», «Rol saqlandi», «Rol o'chirildi» |
+| Sozlamalar | «Tur qo'shildi», «Tur nomi o'zgartirildi», «Tur o'chirildi»; «Buyurtma turi qo'shildi», «Buyurtma turi nomi o'zgartirildi», «Buyurtma turi o'chirildi»; «Maydon qo'shildi», «Maydon saqlandi», «Maydon o'chirildi»; «Bosqich qo'shildi», «Bosqich saqlandi», «Bosqich o'chirildi»; «Dropdown qo'shildi», «Dropdown nomi o'zgartirildi», «Dropdown o'chirildi»; «Variant nomi o'zgartirildi», «Variant nofaol qilindi», «Variant faollashtirildi», «Variant o'chirildi»; «Rol yaratildi», «Rol saqlandi», «Rol o'chirildi»; «Kategoriya qo'shildi», «Kategoriya nomi o'zgartirildi», «Kategoriya o'chirildi» (moliya va mahsulot kategoriyalari) |
 | Qobiq | «Menyu tartibi saqlandi» |
 
 ### 12.2. Bo'sh holatlar
