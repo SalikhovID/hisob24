@@ -76,7 +76,8 @@ test("the sheet's rows say what may be left empty, the price its currency", asyn
   renderWithProviders(<Opened companyId={1} />)
 
   const dialog = await screen.findByRole("dialog", { name: "Mahsulot qo'shish" })
-  expect(within(dialog).getByText("Nom va birlik majburiy; sotuv narxi, artikul va izoh ixtiyoriy.")).toBeInTheDocument()
+  expect(within(dialog).getByText("Nom va birlik majburiy; kategoriya, sotuv narxi, artikul va izoh ixtiyoriy.")).toBeInTheDocument()
+  expect(within(dialog).getByLabelText("Kategoriya")).toHaveTextContent("Kategoriyasiz")
   expect(within(dialog).getByLabelText("Nomi")).toHaveAttribute("placeholder", "Masalan, Olma")
   expect(within(dialog).getByLabelText("Birlik")).toHaveTextContent("Tanlang")
   for (const label of ["Sotuv narxi", "Artikul", "Izoh"]) {
@@ -113,4 +114,38 @@ test("with more than the so'm the price's currency is chosen by its code's butto
   await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
 
   await waitFor(() => expect(db.products.find((p) => p.name === "Kofe")).toMatchObject({ price: "5.00", currencyId: 2 }))
+})
+
+test("a product is filed under a category chosen from its row, the categories in the settings' order", async () => {
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Shirinliklar", position: 2 }, { id: 7002, companyId: 1, name: "Ichimliklar", position: 1 })
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Opened companyId={1} />)
+
+  const dialog = await screen.findByRole("dialog", { name: "Mahsulot qo'shish" })
+  await user.type(within(dialog).getByLabelText("Nomi"), "Kola")
+  await choose(user, within(dialog).getByLabelText("Birlik"), "dona")
+  await user.click(within(dialog).getByLabelText("Kategoriya"))
+  const sheet = await screen.findByRole("dialog", { name: "Kategoriya" })
+  expect(within(sheet).getAllByRole("option").map((option) => option.textContent)).toEqual(["Kategoriyasiz", "Ichimliklar", "Shirinliklar"])
+  expect(within(sheet).getByText("Kategoriyalar Sozlamalarda qo'shiladi")).toBeInTheDocument()
+  await user.click(within(sheet).getByRole("option", { name: "Ichimliklar" }))
+  expect(within(dialog).getByLabelText("Kategoriya")).toHaveTextContent("Ichimliklar")
+  await user.click(within(dialog).getByRole("button", { name: "Qo'shish" }))
+
+  await waitFor(() => expect(db.products.find((p) => p.name === "Kola")).toMatchObject({ categoryId: 7002 }))
+})
+
+test("an edited product starts from its category, and «Kategoriyasiz» takes it out", async () => {
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Mevalar", position: 1 })
+  const { olma } = seedCatalog()
+  olma.categoryId = 7001
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Opened companyId={1} product={toProduct(olma)} />)
+
+  const dialog = await screen.findByRole("dialog", { name: "Mahsulotni tahrirlash" })
+  await waitFor(() => expect(within(dialog).getByLabelText("Kategoriya")).toHaveTextContent("Mevalar"))
+  await choose(user, within(dialog).getByLabelText("Kategoriya"), "Kategoriyasiz")
+  await user.click(within(dialog).getByRole("button", { name: "Saqlash" }))
+
+  await waitFor(() => expect(db.products.find((p) => p.id === olma.id)?.categoryId).toBeNull())
 })

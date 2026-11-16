@@ -14,13 +14,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { api, call } from "@/lib/api"
 import { type ProductForm, type ProductOutput, productDefaults, productSchema, units } from "@/lib/catalog"
 import { currencyCodes, currencyOf, isMulti, useCurrencies } from "@/lib/currencies"
-import { productKey, productsKey } from "@/lib/queries"
+import { productKey, productsKey, useProductCategories } from "@/lib/queries"
 import type { Product } from "@/lib/types"
 
 // ProductDialog enters a product (logic/products.md, section 4), or saves
 // the one given with other fields, as the prototype's sheet: its name, its
-// unit chosen in a sheet of its own, its sale price (in its currency when
-// the company works in more than the so'm), its SKU and a note. The page
+// category (or none) and its unit, each chosen in a sheet of its own, its
+// sale price (in its currency when the company works in more than the
+// so'm), its SKU and a note. The page
 // opens it (the round + of the list, the «Tahrirlash» tile of the product)
 // and mounts it for each opening, so it starts from the product as it is
 // now, or from an empty form. The kind was set on entry and stays.
@@ -37,6 +38,8 @@ export function ProductDialog({
 }) {
   const queryClient = useQueryClient()
   const currencies = useCurrencies()
+  // The categories, in the settings' order (logic/products.md, 3.4).
+  const categories = (useProductCategories(companyId).data ?? []).map((c) => ({ value: String(c.id), label: c.name }))
   const form = useForm<ProductForm, unknown, ProductOutput>({
     resolver: zodResolver(productSchema),
     defaultValues: productDefaults(product),
@@ -62,12 +65,20 @@ export function ProductDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{product ? "Mahsulotni tahrirlash" : "Mahsulot qo'shish"}</DialogTitle>
-          <DialogDescription>Nom va birlik majburiy; sotuv narxi, artikul va izoh ixtiyoriy.</DialogDescription>
+          <DialogDescription>Nom va birlik majburiy; kategoriya, sotuv narxi, artikul va izoh ixtiyoriy.</DialogDescription>
         </DialogHeader>
         <SheetForm onSubmit={form.handleSubmit((fields) => save.mutate(fields))}>
           {save.isError && <Refusal className="mb-4">{save.error.message}</Refusal>}
           <Group>
             <TextRow control={form.control} name="name" label="Nomi" placeholder="Masalan, Olma" autoComplete="off" />
+            <SelectRow
+              control={form.control}
+              name="category_id"
+              label="Kategoriya"
+              options={categories}
+              none="Kategoriyasiz"
+              note="Kategoriyalar Sozlamalarda qo'shiladi"
+            />
             <SelectRow control={form.control} name="unit" label="Birlik" options={units} />
             <AmountRow
               control={form.control}
