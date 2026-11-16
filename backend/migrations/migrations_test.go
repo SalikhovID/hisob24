@@ -2109,3 +2109,75 @@ func TestProductCategoriesKeepTheirRules(t *testing.T) {
 	_, err = pool.Exec(ctx, "UPDATE products SET category_id = $1 WHERE id = $2", sweets, olma.product)
 	assert.NoError(t, err, "a product has one")
 }
+
+// Once there are categories, the products a company has go into «Asosiy»
+// (logic/products.md, 3.4): its live products, the inactive ones too, and
+// nothing else; a company with no live product gets no category. Down takes
+// the categories away.
+func TestTheProductCategoriesMigrationPutsTheProductsIntoAsosiy(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	provider := newProvider(t, pool)
+	_, err := provider.DownTo(ctx, 23)
+	require.NoError(t, err)
+	olma := addWarehouseFixture(t, pool, "Olma")
+	add := func(companyID int64, kind, name string, active, deleted bool) int64 {
+		var id int64
+		require.NoError(t, pool.QueryRow(ctx, `INSERT INTO products (company_id, kind, name, unit, is_active, created_by, deleted_at)
+			VALUES ($1, $2, $3, CASE WHEN $2 = 'product' THEN 'dona' END, $4, '998901111111', CASE WHEN $5 THEN now() END) RETURNING id`,
+			companyID, kind, name, active, deleted).Scan(&id))
+		return id
+	}
+	inactive := add(olma.company, "product", "Nok", false, false)
+	gone := add(olma.company, "product", "Eski", true, true)
+	service := add(olma.company, "service", "Yetkazish", true, false)
+	behi := addCompany(t, pool, "Behi")
+	behiOff := add(behi, "product", "Behi", false, false)
+	services := addCompany(t, pool, "Xizmat")
+	add(services, "service", "Ta'mir", true, false)
+	deleted := addCompany(t, pool, "Gilos")
+	add(deleted, "product", "Gilos", true, true)
+	addCompany(t, pool, "Bo'sh")
+	var edited time.Time
+	require.NoError(t, pool.QueryRow(ctx, "SELECT updated_at FROM products WHERE id = $1", olma.product).Scan(&edited))
+
+	_, err = provider.Up(ctx)
+	require.NoError(t, err)
+
+	categories := map[int64]string{}
+	rows, err := pool.Query(ctx, "SELECT company_id, name || ' ' || position FROM product_categories")
+	require.NoError(t, err)
+	for rows.Next() {
+		var company int64
+		var category string
+		require.NoError(t, rows.Scan(&company, &category))
+		categories[company] = category
+	}
+	rows.Close()
+	require.NoError(t, rows.Err())
+	assert.Equal(t, map[int64]string{olma.company: "Asosiy 1", behi: "Asosiy 1"}, categories, "a company with a live product, an inactive one too, gets «Asosiy»")
+	filed := map[int64]*string{}
+	rows, err = pool.Query(ctx, "SELECT p.id, c.name FROM products p LEFT JOIN product_categories c ON c.id = p.category_id AND c.company_id = p.company_id WHERE p.company_id IN ($1, $2)", olma.company, behi)
+	require.NoError(t, err)
+	for rows.Next() {
+		var id int64
+		var name *string
+		require.NoError(t, rows.Scan(&id, &name))
+		filed[id] = name
+	}
+	rows.Close()
+	require.NoError(t, rows.Err())
+	asosiy := "Asosiy"
+	assert.Equal(t, map[int64]*string{olma.product: &asosiy, inactive: &asosiy, gone: nil, service: nil, behiOff: &asosiy}, filed,
+		"the live products go into their company's «Asosiy», a deleted product and a service into none")
+	var now time.Time
+	require.NoError(t, pool.QueryRow(ctx, "SELECT updated_at FROM products WHERE id = $1", olma.product).Scan(&now))
+	assert.True(t, edited.Equal(now), "filing a product is no edit of it")
+
+	_, err = provider.DownTo(ctx, 23)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "SELECT category_id FROM products")
+	assert.Equal(t, "42703", sqlState(err), "down takes the products' category away")
+	_, err = pool.Exec(ctx, "SELECT 1 FROM product_categories")
+	assert.Equal(t, "42P01", sqlState(err), "and the categories")
+}

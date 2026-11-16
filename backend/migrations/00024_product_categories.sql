@@ -26,6 +26,16 @@ ALTER TABLE products
     ADD CONSTRAINT products_category_kind CHECK (kind = 'product' OR category_id IS NULL);
 CREATE INDEX products_by_category ON products (company_id, category_id) WHERE deleted_at IS NULL;
 
+-- The products there are go into «Asosiy»: every company with a live
+-- product (an inactive one too) gets it, first in its order, and its live
+-- products are filed under it. A service, a deleted product and a company
+-- with no live product get none. Filing is no edit: updated_at stays.
+INSERT INTO product_categories (company_id, name, position)
+SELECT DISTINCT company_id, 'Asosiy', 1 FROM products WHERE kind = 'product' AND deleted_at IS NULL;
+UPDATE products p SET category_id = c.id
+FROM product_categories c
+WHERE c.company_id = p.company_id AND p.kind = 'product' AND p.deleted_at IS NULL;
+
 -- +goose Down
 ALTER TABLE products DROP COLUMN category_id;
 DROP TABLE product_categories;
