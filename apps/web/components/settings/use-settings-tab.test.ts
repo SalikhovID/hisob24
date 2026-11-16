@@ -8,6 +8,7 @@ test.each([
   ["dropdowns", "/settings/dropdowns"],
   ["currencies", "/settings/currencies"],
   ["finance", "/settings/finance-categories"],
+  ["products", "/settings/product-categories"],
   ["roles", "/settings/roles"],
 ] as const)("settingsHref(%s) is the part's page", (tab, href) => {
   expect(settingsHref(tab)).toBe(href)

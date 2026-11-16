@@ -1,14 +1,16 @@
 // SettingsTab is a part of the settings, each on a page of its own: what the
 // company's customers are asked, what its orders are asked and the stages
 // they go through, the dropdowns both take their options from, the
-// currency rates, the finance categories, and the roles (the owner's alone).
-export type SettingsTab = "customers" | "orders" | "stages" | "dropdowns" | "currencies" | "finance" | "roles"
+// categories of the products, the currency rates, the finance categories,
+// and the roles (the owner's alone).
+export type SettingsTab = "customers" | "orders" | "stages" | "dropdowns" | "products" | "currencies" | "finance" | "roles"
 
 const pages: Record<SettingsTab, string> = {
   customers: "/settings/customer-types",
   orders: "/settings/order-types",
   stages: "/settings/stages",
   dropdowns: "/settings/dropdowns",
+  products: "/settings/product-categories",
   currencies: "/settings/currencies",
   finance: "/settings/finance-categories",
   roles: "/settings/roles",
