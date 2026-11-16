@@ -15,6 +15,7 @@ import (
 var (
 	errCategoryNotFound  = apperr.New(apperr.NotFound, "not_found", "Kategoriya topilmadi")
 	errCategoryNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli kategoriya allaqachon bor")
+	errWrongCategory     = invalid("Kategoriya noto'g'ri")
 )
 
 // Category is a category of the company's products (logic/products.md,
@@ -129,4 +130,20 @@ func (s *Service) OrderCategories(ctx context.Context, companyID int64, ids []in
 		}
 		return q.OrderProductCategories(ctx, gen.OrderProductCategoriesParams{CompanyID: companyID, Ids: ids})
 	})
+}
+
+// categoryAllowed says whether a product may be filed under the category:
+// under none (nil), or under a live category of the company (400
+// otherwise: another company's, a deleted one, none such).
+func categoryAllowed(ctx context.Context, q *gen.Queries, companyID int64, id *int64) error {
+	if id == nil {
+		return nil
+	}
+	if _, err := q.GetProductCategory(ctx, gen.GetProductCategoryParams{ID: *id, CompanyID: companyID}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return errWrongCategory
+		}
+		return err
+	}
+	return nil
 }

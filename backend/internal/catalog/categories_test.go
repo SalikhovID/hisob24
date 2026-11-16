@@ -200,3 +200,33 @@ func TestAProductIsFiledUnderACategory(t *testing.T) {
 	}
 	assert.Equal(t, map[string]*string{"Kola": nil, "Tort": ptr("Desertlar")}, listed, "the list carries it too")
 }
+
+// A product is filed under a live category of its own company alone: any
+// other is refused, and nothing is written (logic/products.md, section 4).
+func TestAProductIsFiledUnderALiveCategoryOfItsCompany(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, pool, "Olma")
+	nok := newShop(t, pool, "Nok")
+	theirs, err := s.CreateCategory(ctx, nok.company, "Ichimliklar")
+	require.NoError(t, err)
+	gone, err := s.CreateCategory(ctx, olma.company, "Eski")
+	require.NoError(t, err)
+	require.NoError(t, s.DeleteCategory(ctx, olma.company, gone.ID))
+	cola, err := s.Create(ctx, olma.scope(), ali, product("Kola", "dona"))
+	require.NoError(t, err)
+
+	for name, id := range map[string]int64{"another company's": theirs.ID, "a deleted one": gone.ID, "none such": 999999} {
+		in := product("Fanta", "dona")
+		in.CategoryID = &id
+		_, err := s.Create(ctx, olma.scope(), ali, in)
+		refused(t, err, apperr.Invalid, "validation_error", "Kategoriya noto'g'ri", name)
+		in.Name = "Kola"
+		_, err = s.Update(ctx, olma.scope(), cola.ID, in)
+		refused(t, err, apperr.Invalid, "validation_error", "Kategoriya noto'g'ri", name)
+	}
+	page, err := s.List(ctx, olma.scope(), ListInput{Page: 1})
+	require.NoError(t, err)
+	require.Len(t, page.Items, 1, "nothing entered")
+	assert.Nil(t, page.Items[0].CategoryID, "nor filed")
+}

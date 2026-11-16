@@ -120,6 +120,9 @@ func (s *Service) Create(ctx context.Context, scope Scope, by string, in Input) 
 		if err := currencyAllowed(ctx, q, companyID, c.CurrencyID); err != nil {
 			return err
 		}
+		if err := categoryAllowed(ctx, q, companyID, c.CategoryID); err != nil {
+			return err
+		}
 		name, err := memberName(ctx, q, companyID, by)
 		if err != nil {
 			return err
@@ -156,6 +159,9 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, in Input) (
 			return err
 		}
 		if err := currencyAllowed(ctx, q, companyID, c.CurrencyID); err != nil {
+			return err
+		}
+		if err := categoryAllowed(ctx, q, companyID, c.CategoryID); err != nil {
 			return err
 		}
 		_, err = q.UpdateProduct(ctx, gen.UpdateProductParams{
