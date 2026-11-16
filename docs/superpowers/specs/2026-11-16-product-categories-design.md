@@ -1,6 +1,6 @@
 # Mahsulot kategoriyalari — dizayn
 
-Sana: 2026-11-16. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), amalga oshirilmoqda (`dev` branch). Reja: [`docs/superpowers/plans/2026-11-16-product-categories.md`](../plans/2026-11-16-product-categories.md).
+Sana: 2026-11-16. Holat: foydalanuvchi reja sifatida tasdiqlagan (savol-javob bilan), uchala bosqich amalga oshirilgan (`dev` branch, 2026-11-16). Reja: [`docs/superpowers/plans/2026-11-16-product-categories.md`](../plans/2026-11-16-product-categories.md).
 
 ## Kontekst
 

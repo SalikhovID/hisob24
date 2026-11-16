@@ -2,7 +2,7 @@
 
 Bu hujjat mahsulotlar bo'limi qoidalarini belgilaydi: mahsulot va xizmat nima, qaysi maydonlari bor, kim nima qila oladi, ro'yxat va sahifa nimani ko'rsatadi, nima qachon o'chadi. Ombor (ta'minotchilar, xaridlar, qoldiq, to'lovlar): [warehouse.md](warehouse.md). Rollar: [roles.md](roles.md). Lokatsiyalar (har lokatsiya bitta ombor): [locations.md](locations.md).
 
-> Holat: 2026-10-07 dagi qoidalar amalga oshirilgan (`docs/superpowers/specs/2026-10-07-inventory-design.md`); 2026-10-11 da narx valyutasi, jurnaldan qoldiq, harakatlar va sotuv bilan yangilangan, amalga oshirilmoqda (`docs/superpowers/specs/2026-10-11-ledger-design.md`); 2026-11-16 da mahsulot kategoriyalari qo'shilgan (3.4), amalga oshirilmoqda (`docs/superpowers/specs/2026-11-16-product-categories-design.md`). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
+> Holat: 2026-10-07 dagi qoidalar amalga oshirilgan (`docs/superpowers/specs/2026-10-07-inventory-design.md`); 2026-10-11 da narx valyutasi, jurnaldan qoldiq, harakatlar va sotuv bilan yangilangan, amalga oshirilmoqda (`docs/superpowers/specs/2026-10-11-ledger-design.md`); 2026-11-16 da mahsulot kategoriyalari qo'shilgan (3.4), amalga oshirilgan (`docs/superpowers/specs/2026-11-16-product-categories-design.md`). Qoida o'zgarsa, avval shu hujjat, keyin kod o'zgartiriladi.
 
 ## 1. Tushunchalar
 
