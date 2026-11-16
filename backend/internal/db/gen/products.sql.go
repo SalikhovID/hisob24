@@ -45,7 +45,7 @@ const createProduct = `-- name: CreateProduct :one
 INSERT INTO products (company_id, kind, name, unit, sku, price, currency_id, note, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5,
         $6, $7, $8, $9, $10)
-RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id
+RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id, category_id
 `
 
 type CreateProductParams struct {
@@ -95,6 +95,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.CurrencyID,
+		&i.CategoryID,
 	)
 	return i, err
 }
@@ -318,7 +319,7 @@ func (q *Queries) ProductStanding(ctx context.Context, arg ProductStandingParams
 const setProductActive = `-- name: SetProductActive :one
 UPDATE products SET is_active = $1, updated_at = now()
 WHERE id = $2 AND company_id = $3 AND deleted_at IS NULL
-RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id
+RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id, category_id
 `
 
 type SetProductActiveParams struct {
@@ -348,6 +349,7 @@ func (q *Queries) SetProductActive(ctx context.Context, arg SetProductActivePara
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.CurrencyID,
+		&i.CategoryID,
 	)
 	return i, err
 }
@@ -357,7 +359,7 @@ UPDATE products
 SET name = $1, unit = $2, sku = $3, price = $4,
     currency_id = $5, note = $6, updated_at = now()
 WHERE id = $7 AND company_id = $8 AND deleted_at IS NULL
-RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id
+RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id, category_id
 `
 
 type UpdateProductParams struct {
@@ -402,6 +404,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.CurrencyID,
+		&i.CategoryID,
 	)
 	return i, err
 }

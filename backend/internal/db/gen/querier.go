@@ -70,6 +70,9 @@ type Querier interface {
 	// How many live documents are filed under the category (logic/finance.md,
 	// section 6: such a category is not deleted).
 	CountCategoryDocuments(ctx context.Context, categoryID int64) (int64, error)
+	// How many live products (the inactive ones too) are filed under the
+	// category: what keeps it from being deleted.
+	CountCategoryProducts(ctx context.Context, categoryID int64) (int64, error)
 	// The same filter as ListCompanies, for the page count.
 	CountCompanies(ctx context.Context, arg CountCompaniesParams) (int64, error)
 	// How many live accounts of the company are in the currency: what keeps
@@ -196,6 +199,9 @@ type Querier interface {
 	// when they leave. The name is one row's among the company's rows of the
 	// kind, the SKU one product's in the company (23505, whatever the case).
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
+	// A new category goes last in the company's order; 23505 when the name is
+	// another live category's (whatever the case).
+	CreateProductCategory(ctx context.Context, arg CreateProductCategoryParams) (ProductCategory, error)
 	// Enters a rate row a member set: a standard one (status 1) from the
 	// settings, or a document's own (2). set_by_name is the name the member
 	// goes by in the company now: it stays when they leave. The night's run
@@ -314,6 +320,9 @@ type Querier interface {
 	// are free again. pgx.ErrNoRows when the company has no such row, or
 	// deleted it already.
 	DeleteProduct(ctx context.Context, arg DeleteProductParams) (int64, error)
+	// Hides the category: nothing is removed, its name is free again.
+	// pgx.ErrNoRows when the company has no such category, or deleted it already.
+	DeleteProductCategory(ctx context.Context, arg DeleteProductCategoryParams) (int64, error)
 	// Removes the company's role for good. A role someone holds is refused by
 	// the foreign key (23503); pgx.ErrNoRows when the company has none such.
 	DeleteRole(ctx context.Context, arg DeleteRoleParams) (int64, error)
@@ -468,6 +477,9 @@ type Querier interface {
 	// location, with that document's currency (last_price_currency_id, 0 with
 	// no price), NULL when it was never bought.
 	GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error)
+	// The company's live category; pgx.ErrNoRows when it has none such, or
+	// deleted it.
+	GetProductCategory(ctx context.Context, arg GetProductCategoryParams) (ProductCategory, error)
 	// The company's purchase, in one of the locations given (the member's):
 	// with its supplier's and location's names, its rate (of its currency, in
 	// so'm), what it comes to in so'm, what was paid with it (the live payments
@@ -684,6 +696,8 @@ type Querier interface {
 	// A page of the supplier's live payments, the newest first (then the later
 	// entered). The columns are GetPayment's.
 	ListPayments(ctx context.Context, arg ListPaymentsParams) ([]ListPaymentsRow, error)
+	// The company's live categories, in their order.
+	ListProductCategories(ctx context.Context, companyID int64) ([]ProductCategory, error)
 	// The live moves of the products given, by product, then in time (the
 	// document's moment, the document, a document's move out before its move
 	// in, the move), each with the unit cost in so'm its document's line
@@ -808,6 +822,10 @@ type Querier interface {
 	// gets position 1. An id that is not a live category of the kind is passed
 	// over.
 	OrderFinanceCategories(ctx context.Context, arg OrderFinanceCategoriesParams) error
+	// Puts the company's categories in the order of ids: the first gets
+	// position 1. An id that is not a live category of the company is passed
+	// over.
+	OrderProductCategories(ctx context.Context, arg OrderProductCategoriesParams) error
 	// The company's live product or service: its kind, name and whether it is
 	// active (what a purchase line may name). pgx.ErrNoRows when the company
 	// has none such, or deleted it.
@@ -830,6 +848,9 @@ type Querier interface {
 	RenameLocation(ctx context.Context, arg RenameLocationParams) (Location, error)
 	// pgx.ErrNoRows when the company has no such type, or deleted it.
 	RenameOrderType(ctx context.Context, arg RenameOrderTypeParams) (OrderType, error)
+	// Gives the category another name. pgx.ErrNoRows when the company has no
+	// such category, or deleted it; 23505 when the name is another's.
+	RenameProductCategory(ctx context.Context, arg RenameProductCategoryParams) (ProductCategory, error)
 	// Puts the type's fields in the order of ids: the first gets position 1. An
 	// id that is not a live field of the type is passed over.
 	ReorderOrderFields(ctx context.Context, arg ReorderOrderFieldsParams) error

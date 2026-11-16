@@ -280,6 +280,17 @@ type Product struct {
 	UpdatedAt     time.Time
 	DeletedAt     *time.Time
 	CurrencyID    int64
+	CategoryID    *int64
+}
+
+type ProductCategory struct {
+	ID        int64
+	CompanyID int64
+	Name      string
+	Position  int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
 
 type RefreshToken struct {
