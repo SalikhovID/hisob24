@@ -95,9 +95,9 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   // stranger is on their way home.
   if (!gate) return null
   const page = products.data
-  // The web's table: the name (the SKU under it), for a product its stock in
-  // the current location and its last purchase price, the price, whether it
-  // is active.
+  // The web's table: the name (the SKU under it), for a product its
+  // category, its stock in the current location and its last purchase
+  // price, the price, whether it is active.
   const priceOf = (p: Product) => (p.price ? formatMoney(p.price, currencyOf(currencies, p.currency_id)) : "—")
   const status = (p: Product) => (p.is_active ? <Badge variant="green">Faol</Badge> : <Badge>Nofaol</Badge>)
   const nameCell = (p: Product) => (
@@ -108,6 +108,7 @@ export function CatalogPage({ kind }: { kind: ProductKind }) {
   )
   const productColumns: Column<Product>[] = [
     { key: "name", label: "Nomi", render: nameCell },
+    { key: "category", label: "Kategoriya", render: (p) => p.category_name ?? "—" },
     { key: "stock", label: "Qoldiq", align: "end", render: (p) => (p.quantity !== null ? formatQuantity(p.quantity, p.unit) : "—") },
     {
       key: "last",
