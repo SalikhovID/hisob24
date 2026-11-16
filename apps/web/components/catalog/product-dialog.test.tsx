@@ -149,3 +149,17 @@ test("an edited product starts from its category, and «Kategoriyasiz» takes it
 
   await waitFor(() => expect(db.products.find((p) => p.id === olma.id)?.categoryId).toBeNull())
 })
+
+test("with eight categories or more the category sheet searches them", async () => {
+  const names = ["Ichimliklar", "Shirinliklar", "Xo'jalik", "Mevalar", "Sabzavotlar", "Non", "Go'sht", "Sut"]
+  names.forEach((name, i) => db.productCategories.push({ id: 7100 + i, companyId: 1, name, position: i + 1 }))
+  await signIn(ALI)
+  const { user } = renderWithProviders(<Opened companyId={1} />)
+
+  const dialog = await screen.findByRole("dialog", { name: "Mahsulot qo'shish" })
+  await user.click(within(dialog).getByLabelText("Kategoriya"))
+  const sheet = await screen.findByRole("dialog", { name: "Kategoriya" })
+  await user.type(await within(sheet).findByRole("searchbox"), "sut")
+
+  await waitFor(() => expect(within(sheet).getAllByRole("option").map((option) => option.textContent)).toEqual(["Sut"]))
+})

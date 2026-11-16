@@ -77,6 +77,7 @@ export function ProductDialog({
               label="Kategoriya"
               options={categories}
               none="Kategoriyasiz"
+              search={categories.length >= 8 ? "Kategoriya nomi" : undefined}
               note="Kategoriyalar Sozlamalarda qo'shiladi"
             />
             <SelectRow control={form.control} name="unit" label="Birlik" options={units} />
