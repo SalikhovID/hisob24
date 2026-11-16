@@ -40,6 +40,7 @@ test("on a phone the page is «Sozlama»: the company with who is signed in, the
       ["Buyurtma turlari", "/settings/order-types", "1"],
       ["Bosqichlar", "/settings/stages", "3"],
       ["Dropdownlar", "/settings/dropdowns", "1"],
+      ["Mahsulot kategoriyalari", "/settings/product-categories", "0"],
       ["Valyuta kurslari", "/settings/currencies", null],
       ["Moliya kategoriyalari", "/settings/finance-categories", null],
       ["Rollar", "/settings/roles", "0"],
