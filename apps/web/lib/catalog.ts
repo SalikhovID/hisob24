@@ -33,6 +33,13 @@ const price = z.string().transform((value, context) => {
 // text), turned into the id the API takes.
 const currencyId = z.string().min(1, "Valyutani tanlang").transform(Number)
 
+// categoryId is the product's category as a select holds it (the id as text,
+// nothing for none), turned into the id the API takes, or null.
+const categoryId = z
+  .string()
+  .optional()
+  .transform((value) => (value ? Number(value) : null))
+
 // nounOf is what a record is called: a product or a service.
 export const nounOf = (kind: "product" | "service") => (kind === "service" ? "Xizmat" : "Mahsulot")
 
@@ -44,6 +51,7 @@ export const productSchema = z.object({
   sku: optional(60, "Artikul 60 belgidan oshmasin"),
   price,
   currency_id: currencyId,
+  category_id: categoryId,
   note: optional(500, "Izoh 500 belgidan oshmasin"),
 })
 

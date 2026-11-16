@@ -57,6 +57,12 @@ test("productSchema refuses in the API's words, every field at once", () => {
   expect(messages(productSchema, { name: "Olma", unit: "tonna", sku: "", price: "", currency_id: "1", note: "" })).toEqual({ unit: "Birlikni tanlang" })
 })
 
+test("productSchema files the product under the category chosen, none when none is", () => {
+  const form = { name: "Kola", unit: "dona", sku: "", price: "", currency_id: "1", note: "" }
+  expect(productSchema.safeParse({ ...form, category_id: "7" })).toMatchObject({ success: true, data: { category_id: 7 } })
+  expect(productSchema.safeParse({ ...form, category_id: "" })).toMatchObject({ success: true, data: { category_id: null } })
+})
+
 test("serviceSchema is the name, the price with its currency and the note", () => {
   expect(serviceSchema.safeParse({ name: "Yetkazish", price: "50000", currency_id: "1", note: "" })).toMatchObject({
     success: true,
