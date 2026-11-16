@@ -230,3 +230,46 @@ func TestAProductIsFiledUnderALiveCategoryOfItsCompany(t *testing.T) {
 	require.Len(t, page.Items, 1, "nothing entered")
 	assert.Nil(t, page.Items[0].CategoryID, "nor filed")
 }
+
+// productIDs is the products of a page, in order.
+func productIDs(page Page) []int64 {
+	out := make([]int64, 0, len(page.Items))
+	for _, p := range page.Items {
+		out = append(out, p.ID)
+	}
+	return out
+}
+
+// The list narrows to a category's products, or to the ones with none, and
+// counts under the same filter (logic/products.md, section 5).
+func TestListByCategory(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, pool, "Olma")
+	drinks, err := s.CreateCategory(ctx, olma.company, "Ichimliklar")
+	require.NoError(t, err)
+	enter := func(name string, category *int64) int64 {
+		in := product(name, "dona")
+		in.CategoryID = category
+		p, err := s.Create(ctx, olma.scope(), ali, in)
+		require.NoError(t, err)
+		return p.ID
+	}
+	cola := enter("Kola", &drinks.ID)
+	fanta := enter("Fanta", &drinks.ID)
+	bread := enter("Non", nil)
+
+	page, err := s.List(ctx, olma.scope(), ListInput{Category: CategoryFilter{ID: drinks.ID}, Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []int64{fanta, cola}, productIDs(page), "a category's own")
+	assert.EqualValues(t, 2, page.Total, "counted under the same filter")
+	page, err = s.List(ctx, olma.scope(), ListInput{Category: CategoryFilter{None: true}, Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []int64{bread}, productIDs(page), "the ones with none")
+	page, err = s.List(ctx, olma.scope(), ListInput{Category: CategoryFilter{ID: 999999}, Page: 1})
+	require.NoError(t, err)
+	assert.Empty(t, page.Items, "a category of none of the company's finds nothing")
+	page, err = s.List(ctx, olma.scope(), ListInput{Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []int64{fanta, cola, bread}, productIDs(page), "with no filter, every product")
+}

@@ -147,3 +147,19 @@ func categoryAllowed(ctx context.Context, q *gen.Queries, companyID int64, id *i
 	}
 	return nil
 }
+
+// CategoryFilter narrows a list of products to those of a category (ID)
+// or to those with none (None); the zero value keeps them all.
+type CategoryFilter struct {
+	ID   int64
+	None bool
+}
+
+// Query is the filter as the queries take it: the category asked for (nil
+// with none asked), and whether the products with none are.
+func (f CategoryFilter) Query() (id *int64, none bool) {
+	if f.ID != 0 {
+		return &f.ID, false
+	}
+	return nil, f.None
+}

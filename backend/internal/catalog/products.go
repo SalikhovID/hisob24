@@ -30,6 +30,9 @@ type ListInput struct {
 	// LocationID keeps the stock to one of the scope's locations (the one
 	// asked for); 0 is every location of the scope.
 	LocationID int64
+	// Category keeps the products of a category, or the ones with none
+	// (logic/products.md, section 5).
+	Category CategoryFilter
 }
 
 // Page is one page of the list and how many rows there are on all of them.
@@ -72,12 +75,13 @@ func (s *Service) List(ctx context.Context, scope Scope, in ListInput) (Page, er
 			locations = []int64{in.LocationID}
 		}
 	}
-	total, err := s.q.CountProducts(ctx, gen.CountProductsParams{CompanyID: companyID, Kind: kind, IsActive: active, Search: search})
+	category, uncategorized := in.Category.Query()
+	total, err := s.q.CountProducts(ctx, gen.CountProductsParams{CompanyID: companyID, Kind: kind, IsActive: active, Search: search, CategoryID: category, Uncategorized: uncategorized})
 	if err != nil {
 		return Page{}, err
 	}
 	rows, err := s.q.ListProducts(ctx, gen.ListProductsParams{
-		CompanyID: companyID, Kind: kind, IsActive: active, Search: search, LocationIds: locations,
+		CompanyID: companyID, Kind: kind, IsActive: active, Search: search, LocationIds: locations, CategoryID: category, Uncategorized: uncategorized,
 		Limit: PageSize, Offset: int32((in.Page - 1) * PageSize),
 	})
 	if err != nil {
