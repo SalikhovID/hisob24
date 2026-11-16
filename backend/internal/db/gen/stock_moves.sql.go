@@ -59,19 +59,28 @@ func (q *Queries) CountProductMoves(ctx context.Context, arg CountProductMovesPa
 const countStockSummary = `-- name: CountStockSummary :one
 SELECT count(*) FROM products p
 WHERE p.company_id = $1 AND p.deleted_at IS NULL AND p.kind = 'product'
-  AND ($2::text IS NULL
-       OR p.name ILIKE '%' || $2::text || '%'
-       OR p.sku ILIKE '%' || $2::text || '%')
+  AND ($2::bigint IS NULL OR p.category_id = $2::bigint)
+  AND (NOT $3::bool OR p.category_id IS NULL)
+  AND ($4::text IS NULL
+       OR p.name ILIKE '%' || $4::text || '%'
+       OR p.sku ILIKE '%' || $4::text || '%')
 `
 
 type CountStockSummaryParams struct {
-	CompanyID int64
-	Search    *string
+	CompanyID     int64
+	CategoryID    *int64
+	Uncategorized bool
+	Search        *string
 }
 
 // How many rows ListStockSummary finds, on all of its pages.
 func (q *Queries) CountStockSummary(ctx context.Context, arg CountStockSummaryParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countStockSummary, arg.CompanyID, arg.Search)
+	row := q.db.QueryRow(ctx, countStockSummary,
+		arg.CompanyID,
+		arg.CategoryID,
+		arg.Uncategorized,
+		arg.Search,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -427,19 +436,23 @@ LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN t
                    WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
                    ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
 WHERE p.company_id = $2 AND p.deleted_at IS NULL AND p.kind = 'product'
-  AND ($3::text IS NULL
-       OR p.name ILIKE '%' || $3::text || '%'
-       OR p.sku ILIKE '%' || $3::text || '%')
+  AND ($3::bigint IS NULL OR p.category_id = $3::bigint)
+  AND (NOT $4::bool OR p.category_id IS NULL)
+  AND ($5::text IS NULL
+       OR p.name ILIKE '%' || $5::text || '%'
+       OR p.sku ILIKE '%' || $5::text || '%')
 ORDER BY lower(p.name), p.id
-LIMIT $5 OFFSET $4
+LIMIT $7 OFFSET $6
 `
 
 type ListStockSummaryParams struct {
-	LocationIds []int64
-	CompanyID   int64
-	Search      *string
-	Offset      int32
-	Limit       int32
+	LocationIds   []int64
+	CompanyID     int64
+	CategoryID    *int64
+	Uncategorized bool
+	Search        *string
+	Offset        int32
+	Limit         int32
 }
 
 type ListStockSummaryRow struct {
@@ -460,11 +473,14 @@ type ListStockSummaryRow struct {
 // given, its last purchase price with its currency (as GetProduct's) and
 // the stock's value at it. search, escaped for ILIKE, is looked for in the
 // name and in the SKU; NULL leaves it out. category_name is the name of
-// the product's category, NULL with none.
+// the product's category, NULL with none; category_id keeps the products
+// of the category, uncategorized the ones with none.
 func (q *Queries) ListStockSummary(ctx context.Context, arg ListStockSummaryParams) ([]ListStockSummaryRow, error) {
 	rows, err := q.db.Query(ctx, listStockSummary,
 		arg.LocationIds,
 		arg.CompanyID,
+		arg.CategoryID,
+		arg.Uncategorized,
 		arg.Search,
 		arg.Offset,
 		arg.Limit,

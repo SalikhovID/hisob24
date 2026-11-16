@@ -6,6 +6,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 )
 
 // The warehouse's «Qoldiq» table (logic/warehouse.md, section 5): the
@@ -114,4 +116,23 @@ func TestStockSummaryTellsEachProductsCategory(t *testing.T) {
 		categories[row.ProductID] = row.CategoryName
 	}
 	assert.Equal(t, map[int64]*string{m.olma: ptr("Mevalar"), m.nok: nil}, categories)
+}
+
+// «Qoldiq» narrows to a category's products, or to the ones with none, and
+// counts under the same filter (logic/warehouse.md, section 5).
+func TestStockSummaryNarrowsToACategory(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	m := newMarket(t, s, pool)
+	fruit := addCategory(t, pool, m.company, "Mevalar")
+	file(t, pool, m.olma, fruit)
+
+	page, err := s.StockSummary(ctx, m.scope(), StockSummaryInput{Category: catalog.CategoryFilter{ID: fruit}, Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []int64{m.olma}, ids(page), "a category's own")
+	assert.EqualValues(t, 1, page.Total, "counted under the same filter")
+	page, err = s.StockSummary(ctx, m.scope(), StockSummaryInput{Category: catalog.CategoryFilter{None: true}, Page: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []int64{m.nok}, ids(page), "the ones with none")
+	assert.EqualValues(t, 1, page.Total)
 }

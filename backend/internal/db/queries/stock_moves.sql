@@ -114,7 +114,8 @@ ORDER BY sm.product_id, t.doc_at, t.id, (sm.quantity < 0) DESC, sm.id;
 -- given, its last purchase price with its currency (as GetProduct's) and
 -- the stock's value at it. search, escaped for ILIKE, is looked for in the
 -- name and in the SKU; NULL leaves it out. category_name is the name of
--- the product's category, NULL with none.
+-- the product's category, NULL with none; category_id keeps the products
+-- of the category, uncategorized the ones with none.
 SELECT p.id, p.name, p.sku, p.unit, p.is_active, c.name AS category_name,
        COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
                  WHERE sm.product_id = p.id AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[])), 0)::numeric(14,3) AS total,
@@ -125,6 +126,8 @@ LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN t
                    WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
                    ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
 WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL AND p.kind = 'product'
+  AND (sqlc.narg('category_id')::bigint IS NULL OR p.category_id = sqlc.narg('category_id')::bigint)
+  AND (NOT sqlc.arg('uncategorized')::bool OR p.category_id IS NULL)
   AND (sqlc.narg('search')::text IS NULL
        OR p.name ILIKE '%' || sqlc.narg('search')::text || '%'
        OR p.sku ILIKE '%' || sqlc.narg('search')::text || '%')
@@ -135,6 +138,8 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 -- How many rows ListStockSummary finds, on all of its pages.
 SELECT count(*) FROM products p
 WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL AND p.kind = 'product'
+  AND (sqlc.narg('category_id')::bigint IS NULL OR p.category_id = sqlc.narg('category_id')::bigint)
+  AND (NOT sqlc.arg('uncategorized')::bool OR p.category_id IS NULL)
   AND (sqlc.narg('search')::text IS NULL
        OR p.name ILIKE '%' || sqlc.narg('search')::text || '%'
        OR p.sku ILIKE '%' || sqlc.narg('search')::text || '%');

@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/SalikhovID/hisob24/backend/internal/catalog"
 	"github.com/SalikhovID/hisob24/backend/internal/customer"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 )
@@ -44,10 +45,12 @@ type StockSummaryPage struct {
 }
 
 // StockSummaryInput narrows the «Qoldiq» table: Search is looked for in
-// the names and the SKUs; Page starts at 1.
+// the names and the SKUs, Category keeps the products of a category or the
+// ones with none; Page starts at 1.
 type StockSummaryInput struct {
-	Search string
-	Page   int
+	Search   string
+	Category catalog.CategoryFilter
+	Page     int
 }
 
 // StockSummary is a page of the warehouse's «Qoldiq» table
@@ -67,12 +70,13 @@ func (s *Service) StockSummary(ctx context.Context, scope Scope, in StockSummary
 		return out, nil
 	}
 	text, _ := customer.SearchOf(search)
-	total, err := s.q.CountStockSummary(ctx, gen.CountStockSummaryParams{CompanyID: scope.CompanyID, Search: text})
+	category, uncategorized := in.Category.Query()
+	total, err := s.q.CountStockSummary(ctx, gen.CountStockSummaryParams{CompanyID: scope.CompanyID, Search: text, CategoryID: category, Uncategorized: uncategorized})
 	if err != nil {
 		return StockSummaryPage{}, err
 	}
 	rows, err := s.q.ListStockSummary(ctx, gen.ListStockSummaryParams{
-		CompanyID: scope.CompanyID, LocationIds: scope.LocationIDs, Search: text, Limit: PageSize, Offset: int32((page - 1) * PageSize),
+		CompanyID: scope.CompanyID, LocationIds: scope.LocationIDs, Search: text, CategoryID: category, Uncategorized: uncategorized, Limit: PageSize, Offset: int32((page - 1) * PageSize),
 	})
 	if err != nil {
 		return StockSummaryPage{}, err
