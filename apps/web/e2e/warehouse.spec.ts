@@ -1,5 +1,5 @@
 import type { Locator, Page } from "@playwright/test"
-import { seedCatalog, seedWarehouse } from "../mocks/data"
+import { db, seedCatalog, seedWarehouse } from "../mocks/data"
 import { addLocation } from "../test/locations"
 import { giveRole } from "../test/roles"
 import { expect, test } from "./fixtures"
@@ -320,4 +320,44 @@ test("an employee whose role lacks the warehouse has no way to it, and the addre
   await page.goto("/suppliers")
   await expect(page).toHaveURL(/\/$/)
   await expect(page.getByRole("heading", { name: "Salom, Vali Aliyev" })).toBeVisible()
+})
+
+test("a product sheet's category chips scroll sideways inside it on a phone: the sheet keeps the screen's width, a chip keeps its products", async ({ page }) => {
+  test.skip(!onPhone(page), "the squeeze is a phone's")
+  const catalog = seedCatalog()
+  for (const [i, name] of ["Ichimliklar", "Shirinliklar", "Xo'jalik mollari", "Mevalar", "Sabzavotlar", "Qurilish mollari"].entries()) {
+    db.productCategories.push({ id: 7100 + i, companyId: 1, name, position: i + 1 })
+  }
+  catalog.olma.categoryId = 7103
+  await signIn(page, "901234567")
+  await expect(page.getByRole("heading", { name: "Salom, Ali Valiyev" })).toBeVisible()
+  await page.goto("/purchases/new")
+  await expect(page.getByRole("heading", { level: 1, name: "Yangi xarid" })).toBeVisible()
+
+  await page.getByRole("group", { name: "1-qator" }).getByRole("button", { name: /^Mahsulot/ }).click()
+  const sheet = page.getByRole("dialog", { name: "Mahsulot" })
+  const chips = sheet.getByRole("radiogroup", { name: "Kategoriya" })
+  await expect(chips.getByRole("radio", { name: "Hammasi" })).toHaveAttribute("aria-checked", "true")
+  // The strip is wider than its box: it scrolls sideways, inside the sheet.
+  expect(await chips.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+  const width = page.viewportSize()!.width
+  const box = (await sheet.boundingBox())!
+  const strip = (await chips.boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(width)
+  expect(strip.x).toBeGreaterThanOrEqual(box.x)
+  expect(strip.x + strip.width).toBeLessThanOrEqual(box.x + box.width)
+  expect(await sideScroll(page)).toBeLessThanOrEqual(0)
+  // The last chip comes into the sheet as the strip itself scrolls: the
+  // strip stays where it stands.
+  const last = chips.getByRole("radio", { name: "Qurilish mollari" })
+  await last.scrollIntoViewIfNeeded()
+  expect(await chips.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+  expect((await chips.boundingBox())!.x).toBe(strip.x)
+  const lastBox = (await last.boundingBox())!
+  expect(lastBox.x + lastBox.width).toBeLessThanOrEqual(box.x + box.width)
+
+  await chips.getByRole("radio", { name: "Mevalar" }).click()
+  await expect(sheet.getByRole("option")).toHaveCount(1)
+  await expect(sheet.getByRole("option", { name: /^Olma/ })).toBeVisible()
 })
