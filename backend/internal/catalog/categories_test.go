@@ -55,3 +55,26 @@ func TestCreateCategory(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"Ichimliklar", "Shirinliklar"}, categoryNames(list), "the company's own, a new one last")
 }
+
+// A category is renamed under the same rules; another company's is not
+// found.
+func TestRenameCategory(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	nok := addCompany(t, pool, "Nok")
+	drinks, err := s.CreateCategory(ctx, olma, "Ichimliklar")
+	require.NoError(t, err)
+	_, err = s.CreateCategory(ctx, olma, "Shirinliklar")
+	require.NoError(t, err)
+
+	renamed, err := s.RenameCategory(ctx, olma, drinks.ID, " Suvlar ")
+	require.NoError(t, err)
+	assert.Equal(t, Category{ID: drinks.ID, Name: "Suvlar"}, renamed)
+	_, err = s.RenameCategory(ctx, olma, drinks.ID, "shirinliklar")
+	refused(t, err, apperr.Conflict, "name_taken", "Bu nomli kategoriya allaqachon bor")
+	_, err = s.RenameCategory(ctx, olma, drinks.ID, " ")
+	refused(t, err, apperr.Invalid, "validation_error", "Nomni kiriting")
+	_, err = s.RenameCategory(ctx, nok, drinks.ID, "Suv")
+	refused(t, err, apperr.NotFound, "not_found", "Kategoriya topilmadi", "another company's")
+}

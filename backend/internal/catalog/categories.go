@@ -2,13 +2,19 @@ package catalog
 
 import (
 	"context"
+	"errors"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/SalikhovID/hisob24/backend/internal/apperr"
 	"github.com/SalikhovID/hisob24/backend/internal/db/gen"
 	"github.com/SalikhovID/hisob24/backend/internal/fields"
 )
 
-var errCategoryNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli kategoriya allaqachon bor")
+var (
+	errCategoryNotFound  = apperr.New(apperr.NotFound, "not_found", "Kategoriya topilmadi")
+	errCategoryNameTaken = apperr.New(apperr.Conflict, "name_taken", "Bu nomli kategoriya allaqachon bor")
+)
 
 // Category is a category of the company's products (logic/products.md,
 // 3.4): one level, a product under one or none.
@@ -55,4 +61,28 @@ func (s *Service) CreateCategory(ctx context.Context, companyID int64, name stri
 		return nil
 	})
 	return added, err
+}
+
+// RenameCategory gives the company's category another name, under the
+// rules of a new one; its products show it.
+func (s *Service) RenameCategory(ctx context.Context, companyID, id int64, name string) (Category, error) {
+	name, err := fields.CleanName(name)
+	if err != nil {
+		return Category{}, err
+	}
+	var renamed Category
+	err = s.write(ctx, companyID, func(q *gen.Queries) error {
+		c, err := q.RenameProductCategory(ctx, gen.RenameProductCategoryParams{ID: id, CompanyID: companyID, Name: name})
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return errCategoryNotFound
+		case fields.Taken(err):
+			return errCategoryNameTaken
+		case err != nil:
+			return err
+		}
+		renamed = toCategory(c)
+		return nil
+	})
+	return renamed, err
 }
