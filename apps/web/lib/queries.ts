@@ -645,6 +645,19 @@ export function useFinanceCategories(companyId: number | null, kind: FinanceKind
   })
 }
 
+// productCategoriesKey names the company's product categories in the cache.
+export const productCategoriesKey = (companyId: number | null) => ["product-categories", companyId] as const
+
+// useProductCategories is the company's product categories, in their order
+// (logic/products.md, 3.4); every member may ask.
+export function useProductCategories(companyId: number | null) {
+  return useQuery({
+    queryKey: productCategoriesKey(companyId),
+    queryFn: () => call(api.GET("/app/product-categories")),
+    enabled: companyId !== null,
+  })
+}
+
 // The stock documents besides the purchases (logic/warehouse.md, section 5):
 // the transfers, the inventories and the opening stock the member may see,
 // each list a page at a time, the newest first; one document with its
