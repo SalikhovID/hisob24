@@ -619,15 +619,17 @@ type stockSummaryPageJSON struct {
 }
 
 type stockSummaryItemJSON struct {
-	ProductID int64                  `json:"product_id"`
-	Name      string                 `json:"name"`
-	SKU       *string                `json:"sku"`
-	Unit      string                 `json:"unit"`
-	IsActive  bool                   `json:"is_active"`
-	Locations []locationQuantityJSON `json:"locations"`
-	Total     string                 `json:"total"`
-	LastPrice *lastPriceJSON         `json:"last_price"`
-	Value     *string                `json:"value"`
+	ProductID int64   `json:"product_id"`
+	Name      string  `json:"name"`
+	SKU       *string `json:"sku"`
+	Unit      string  `json:"unit"`
+	IsActive  bool    `json:"is_active"`
+	// CategoryName is the name of the product's category, null with none.
+	CategoryName *string                `json:"category_name"`
+	Locations    []locationQuantityJSON `json:"locations"`
+	Total        string                 `json:"total"`
+	LastPrice    *lastPriceJSON         `json:"last_price"`
+	Value        *string                `json:"value"`
 }
 
 type locationQuantityJSON struct {
@@ -651,7 +653,7 @@ func (h *Handler) getStockSummary(w http.ResponseWriter, r *http.Request) {
 	out := stockSummaryPageJSON{Items: make([]stockSummaryItemJSON, 0, len(got.Items)), Total: got.Total, Page: got.Page, PageSize: got.PageSize}
 	for _, row := range got.Items {
 		item := stockSummaryItemJSON{
-			ProductID: row.ProductID, Name: row.Name, SKU: row.SKU, Unit: row.Unit, IsActive: row.Active,
+			ProductID: row.ProductID, Name: row.Name, SKU: row.SKU, Unit: row.Unit, IsActive: row.Active, CategoryName: row.CategoryName,
 			Locations: make([]locationQuantityJSON, 0, len(row.Locations)), Total: row.Total, Value: row.Value,
 		}
 		for _, l := range row.Locations {

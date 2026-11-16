@@ -282,7 +282,7 @@ func TestStockSummaryAPI(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	assert.Equal(t, map[string]any{
 		"items": []any{map[string]any{
-			"product_id": s.product["id"], "name": "Olma", "sku": nil, "unit": "kg", "is_active": true,
+			"product_id": s.product["id"], "name": "Olma", "sku": nil, "unit": "kg", "is_active": true, "category_name": nil,
 			"locations": []any{
 				map[string]any{"location_id": float64(s.asosiy), "quantity": "10.500"},
 				map[string]any{"location_id": float64(s.chilonzor), "quantity": "2.000"},
