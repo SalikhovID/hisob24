@@ -78,3 +78,41 @@ func TestRenameCategory(t *testing.T) {
 	_, err = s.RenameCategory(ctx, nok, drinks.ID, "Suv")
 	refused(t, err, apperr.NotFound, "not_found", "Kategoriya topilmadi", "another company's")
 }
+
+// A category its live products are under stays (409, with how many: the
+// inactive ones count, the deleted do not); an empty one is deleted, and
+// its name is free again.
+func TestDeleteCategory(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	nok := addCompany(t, pool, "Nok")
+	drinks, err := s.CreateCategory(ctx, olma, "Ichimliklar")
+	require.NoError(t, err)
+	file := func(name string, active, deleted bool) {
+		_, err := pool.Exec(ctx, `INSERT INTO products (company_id, kind, name, unit, is_active, category_id, created_by, deleted_at)
+			VALUES ($1, 'product', $2, 'dona', $3, $4, $5, CASE WHEN $6 THEN now() END)`, olma, name, active, drinks.ID, ali, deleted)
+		require.NoError(t, err)
+	}
+	file("Kola", true, false)
+	file("Fanta", false, false)
+	file("Eski", true, true)
+
+	err = s.DeleteCategory(ctx, olma, drinks.ID)
+	refused(t, err, apperr.Conflict, "category_in_use", "Bu kategoriyada 2 ta mahsulot bor", "the live products, the inactive one too")
+	err = s.DeleteCategory(ctx, nok, drinks.ID)
+	refused(t, err, apperr.NotFound, "not_found", "Kategoriya topilmadi", "another company's")
+
+	_, err = pool.Exec(ctx, "UPDATE products SET category_id = NULL WHERE company_id = $1 AND deleted_at IS NULL", olma)
+	require.NoError(t, err)
+	require.NoError(t, s.DeleteCategory(ctx, olma, drinks.ID), "one the deleted products alone are under")
+	list, err := s.Categories(ctx, olma)
+	require.NoError(t, err)
+	assert.Empty(t, list, "gone")
+	err = s.DeleteCategory(ctx, olma, drinks.ID)
+	refused(t, err, apperr.NotFound, "not_found", "Kategoriya topilmadi", "deleted already")
+	_, err = s.RenameCategory(ctx, olma, drinks.ID, "Suv")
+	refused(t, err, apperr.NotFound, "not_found", "Kategoriya topilmadi", "a deleted one is not found")
+	_, err = s.CreateCategory(ctx, olma, "Ichimliklar")
+	assert.NoError(t, err, "its name is free again")
+}

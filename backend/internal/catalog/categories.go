@@ -3,6 +3,7 @@ package catalog
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 
@@ -85,4 +86,28 @@ func (s *Service) RenameCategory(ctx context.Context, companyID, id int64, name 
 		return nil
 	})
 	return renamed, err
+}
+
+// DeleteCategory hides the company's category; its name is free again. One
+// that live products (the inactive ones too) are filed under stays (409
+// category_in_use, with how many): they go into another category, or into
+// none, first.
+func (s *Service) DeleteCategory(ctx context.Context, companyID, id int64) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		if _, err := q.GetProductCategory(ctx, gen.GetProductCategoryParams{ID: id, CompanyID: companyID}); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errCategoryNotFound
+			}
+			return err
+		}
+		n, err := q.CountCategoryProducts(ctx, id)
+		if err != nil {
+			return err
+		}
+		if n > 0 {
+			return apperr.New(apperr.Conflict, "category_in_use", fmt.Sprintf("Bu kategoriyada %d ta mahsulot bor", n))
+		}
+		_, err = q.DeleteProductCategory(ctx, gen.DeleteProductCategoryParams{ID: id, CompanyID: companyID})
+		return err
+	})
 }
