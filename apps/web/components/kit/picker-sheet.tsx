@@ -343,7 +343,8 @@ export function MultiSelectRow<T extends FieldValues, TOut extends FieldValues =
 // SearchPickerSheet finds a record on the server: what is typed is told to
 // the owner (onQuery), who brings the matches (options) from its hook; the
 // list says it is loading or that nothing matched. A press chooses and
-// closes the sheet.
+// closes the sheet. Filters (a strip of chips) may stand between the search
+// and the list.
 export function SearchPickerSheet({
   open,
   onOpenChange,
@@ -357,6 +358,7 @@ export function SearchPickerSheet({
   loading,
   emptyText = "Hech narsa topilmadi",
   note,
+  filters,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -364,6 +366,7 @@ export function SearchPickerSheet({
   placeholder: string
   query: string
   onQuery: (query: string) => void
+  filters?: ReactNode
   options: PickerOption[]
   value: string
   onChange: (value: string) => void
@@ -378,6 +381,7 @@ export function SearchPickerSheet({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <SearchBox value={query} onSearch={onQuery} placeholder={placeholder} className="mb-3" />
+        {filters}
         <OptionList
           title={title}
           options={options}

@@ -92,3 +92,27 @@ test("a picker's options stand on frosted glass, a sheet cell's", async () => {
   expect(listbox).toHaveClass("surface", "rounded-group")
   expect(listbox).not.toHaveClass("bg-sheet-cell")
 })
+
+test("a search sheet's filters stand between its search and its list", async () => {
+  render(
+    <SearchPickerSheet
+      open
+      onOpenChange={() => {}}
+      title="Mahsulot"
+      placeholder="Nom yoki artikul"
+      query=""
+      onQuery={() => {}}
+      filters={<div role="group" aria-label="Kategoriya" />}
+      options={stages}
+      value=""
+      onChange={() => {}}
+      loading={false}
+    />,
+  )
+  const dialog = await screen.findByRole("dialog", { name: "Mahsulot" })
+  const search = within(dialog).getByRole("searchbox", { name: "Qidirish" })
+  const filters = within(dialog).getByRole("group", { name: "Kategoriya" })
+  const list = within(dialog).getByRole("listbox", { name: "Mahsulot" })
+  expect(search.compareDocumentPosition(filters) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(filters.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
