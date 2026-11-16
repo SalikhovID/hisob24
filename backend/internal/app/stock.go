@@ -643,7 +643,7 @@ func (h *Handler) getStockSummary(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	got, err := h.warehouse.StockSummary(r.Context(), warehouseScope(r), r.URL.Query().Get("search"), page)
+	got, err := h.warehouse.StockSummary(r.Context(), warehouseScope(r), warehouse.StockSummaryInput{Search: r.URL.Query().Get("search"), Page: page})
 	if err != nil {
 		httpx.WriteError(w, r, err)
 		return

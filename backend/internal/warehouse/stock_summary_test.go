@@ -32,7 +32,7 @@ func TestStockSummary(t *testing.T) {
 	nok := newShop(t, pool, "Nok")
 	addProduct(t, pool, nok.company, "Begona", ptr("dona"), true)
 
-	page, err := s.StockSummary(ctx, m.scope(), "", 1)
+	page, err := s.StockSummary(ctx, m.scope(), StockSummaryInput{Search: "", Page: 1})
 
 	require.NoError(t, err)
 	zero := []LocationQuantity{{LocationID: m.asosiy, Quantity: "0.000"}, {LocationID: m.chilonzor, Quantity: "0.000"}}
@@ -54,22 +54,22 @@ func TestStockSummary(t *testing.T) {
 		Total: 4, Page: 1, PageSize: PageSize,
 	}, page, "by name whatever the case; the never moved and the turned off with zeros; the service, the deleted and another company's out")
 
-	found, err := s.StockSummary(ctx, m.scope(), " n-1 ", 1)
+	found, err := s.StockSummary(ctx, m.scope(), StockSummaryInput{Search: " n-1 ", Page: 1})
 	require.NoError(t, err)
 	assert.Equal(t, []int64{m.nok}, ids(found), "by the SKU too")
 
-	one, err := s.StockSummary(ctx, m.scope(m.chilonzor), "olma", 1)
+	one, err := s.StockSummary(ctx, m.scope(m.chilonzor), StockSummaryInput{Search: "olma", Page: 1})
 	require.NoError(t, err)
 	require.Len(t, one.Items, 1)
 	assert.Equal(t, []LocationQuantity{{LocationID: m.chilonzor, Quantity: "4.000"}}, one.Items[0].Locations, "the member's locations alone")
 	assert.Equal(t, "4.000", one.Items[0].Total)
 	assert.Equal(t, ptr("4000.00"), one.Items[0].Value)
 
-	none, err := s.StockSummary(ctx, m.nowhere(), "", 1)
+	none, err := s.StockSummary(ctx, m.nowhere(), StockSummaryInput{Search: "", Page: 1})
 	require.NoError(t, err)
 	assert.Equal(t, StockSummaryPage{Items: []StockSummaryRow{}, Total: 0, Page: 1, PageSize: PageSize}, none, "a member with no location sees nothing")
 
-	_, err = s.StockSummary(ctx, m.scope(), "", 0)
+	_, err = s.StockSummary(ctx, m.scope(), StockSummaryInput{Search: "", Page: 0})
 	assert.Error(t, err, "a page is 1 or more")
 }
 

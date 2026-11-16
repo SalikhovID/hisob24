@@ -41,6 +41,13 @@ type StockSummaryPage struct {
 	PageSize int
 }
 
+// StockSummaryInput narrows the «Qoldiq» table: Search is looked for in
+// the names and the SKUs; Page starts at 1.
+type StockSummaryInput struct {
+	Search string
+	Page   int
+}
+
 // StockSummary is a page of the warehouse's «Qoldiq» table
 // (logic/warehouse.md, section 5): the company's live products (no service;
 // the turned off ones too) by name, those whose name or SKU holds search
@@ -48,7 +55,8 @@ type StockSummaryPage struct {
 // location of the scope (in the scope's order, nothing as 0), the sum, its
 // last purchase price and the sum's value at it. A member with no location
 // sees an empty page.
-func (s *Service) StockSummary(ctx context.Context, scope Scope, search string, page int) (StockSummaryPage, error) {
+func (s *Service) StockSummary(ctx context.Context, scope Scope, in StockSummaryInput) (StockSummaryPage, error) {
+	search, page := in.Search, in.Page
 	if err := pageOf(page); err != nil {
 		return StockSummaryPage{}, err
 	}
