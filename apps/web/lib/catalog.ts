@@ -35,10 +35,7 @@ const currencyId = z.string().min(1, "Valyutani tanlang").transform(Number)
 
 // categoryId is the product's category as a select holds it (the id as text,
 // nothing for none), turned into the id the API takes, or null.
-const categoryId = z
-  .string()
-  .optional()
-  .transform((value) => (value ? Number(value) : null))
+const categoryId = z.string().transform((value) => (value === "" ? null : Number(value)))
 
 // nounOf is what a record is called: a product or a service.
 export const nounOf = (kind: "product" | "service") => (kind === "service" ? "Xizmat" : "Mahsulot")
@@ -60,14 +57,14 @@ export const serviceSchema = z.object({ name, price, currency_id: currencyId, no
 
 // ProductForm is what the product dialog holds; ProductOutput is the form
 // as the API takes it. The same for a service.
-export type ProductForm = { name: string; unit: string; sku: string; price: string; currency_id: string; note: string }
+export type ProductForm = { name: string; unit: string; sku: string; price: string; currency_id: string; category_id: string; note: string }
 export type ProductOutput = z.output<typeof productSchema>
 export type ServiceForm = { name: string; price: string; currency_id: string; note: string }
 export type ServiceOutput = z.output<typeof serviceSchema>
 
 // productDefaults is the product dialog as it opens: empty for a new
-// product (its price in the so'm), with the fields of one being edited (its
-// price as the API writes it, "12000.50").
+// product (its price in the so'm, no category), with the fields of one being
+// edited (its price as the API writes it, "12000.50").
 export function productDefaults(product?: Product): ProductForm {
   return {
     name: product?.name ?? "",
@@ -75,6 +72,7 @@ export function productDefaults(product?: Product): ProductForm {
     sku: product?.sku ?? "",
     price: product?.price ?? "",
     currency_id: String(product?.currency_id ?? 1),
+    category_id: product?.category_id ? String(product.category_id) : "",
     note: product?.note ?? "",
   }
 }
