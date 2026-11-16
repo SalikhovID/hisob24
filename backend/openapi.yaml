@@ -1060,6 +1060,150 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/FinanceCategoryConflict"
+  /app/product-categories:
+    get:
+      operationId: listProductCategories
+      summary: Mahsulot kategoriyalari
+      description: >
+        Kompaniyaning mahsulot kategoriyalari o'z tartibida
+        (logic/products.md, 3.4). Har a'zo o'qiydi: mahsulot formasi va
+        filtrlar shundan quriladi.
+      security:
+        - appBearer: []
+      responses:
+        "200":
+          description: Kategoriyalar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductCategory"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/CompanyRequired"
+    post:
+      operationId: createProductCategory
+      summary: Mahsulot kategoriyasi qo'shish (settings.create ruxsati)
+      description: >
+        Yangi kategoriya oxiriga qo'shiladi. Nomi kompaniyada takrorlanmaydi
+        (harf farqsiz), 60 belgigacha.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCategoryInput"
+      responses:
+        "201":
+          description: Qo'shilgan kategoriya
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/ProductCategoryConflict"
+  /app/product-categories/order:
+    put:
+      operationId: orderProductCategories
+      summary: Mahsulot kategoriyalarini tartiblash (settings.edit ruxsati)
+      description: >
+        ids kompaniyaning jonli kategoriyalarining hammasini bir martadan
+        nomlashi shart; ro'yxat boshqa joyda o'zgargan bo'lsa 409 order_changed.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCategoryOrder"
+      responses:
+        "204":
+          description: Tartiblandi
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/ProductCategoryConflict"
+  /app/product-categories/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    patch:
+      operationId: renameProductCategory
+      summary: Mahsulot kategoriyasi nomini o'zgartirish (settings.edit ruxsati)
+      description: Mahsulotlar kategoriyani yangi nomi bilan ko'rsatadi.
+      security:
+        - appBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCategoryInput"
+      responses:
+        "200":
+          description: Kategoriya endi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductCategory"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/ProductCategoryConflict"
+    delete:
+      operationId: deleteProductCategory
+      summary: Mahsulot kategoriyasini o'chirish (settings.delete ruxsati)
+      description: >
+        Yashiriladi, nomi bo'shaydi. Jonli mahsuloti (nofaoli ham) bor
+        kategoriya o'chirilmaydi (409 category_in_use).
+      security:
+        - appBearer: []
+      responses:
+        "204":
+          description: O'chirildi
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/SubscriptionExpired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/ProductCategoryConflict"
   /app/me/tab-bar:
     put:
       operationId: setTabBar
@@ -5931,6 +6075,16 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    ProductCategoryConflict:
+      description: >
+        Bu nomli kategoriya bor (name_taken, "Bu nomli kategoriya allaqachon
+        bor"); ro'yxat boshqa joyda o'zgargan (order_changed, "Ro'yxat
+        o'zgargan. Sahifani yangilang"); mahsuloti bor kategoriya
+        (category_in_use, "Bu kategoriyada N ta mahsulot bor")
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     CannotChangeOwner:
       description: >
         Kompaniya owner'ini user app'dan o'zgartirib yoki o'chirib bo'lmaydi
@@ -6782,6 +6936,33 @@ components:
         ids:
           type: array
           description: Shu turning jonli kategoriyalari, yangi tartibda, har biri bir marta
+          items:
+            type: integer
+            format: int64
+    ProductCategory:
+      type: object
+      description: Mahsulotlar kategoriyasi (logic/products.md, 3.4)
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+    ProductCategoryInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 60
+    ProductCategoryOrder:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          description: Kompaniyaning jonli kategoriyalari, yangi tartibda, har biri bir marta
           items:
             type: integer
             format: int64

@@ -624,6 +624,76 @@ export interface paths {
         patch: operations["updateFinanceCategory"];
         trace?: never;
     };
+    "/app/product-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mahsulot kategoriyalari
+         * @description Kompaniyaning mahsulot kategoriyalari o'z tartibida (logic/products.md, 3.4). Har a'zo o'qiydi: mahsulot formasi va filtrlar shundan quriladi.
+         */
+        get: operations["listProductCategories"];
+        put?: never;
+        /**
+         * Mahsulot kategoriyasi qo'shish (settings.create ruxsati)
+         * @description Yangi kategoriya oxiriga qo'shiladi. Nomi kompaniyada takrorlanmaydi (harf farqsiz), 60 belgigacha.
+         */
+        post: operations["createProductCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/product-categories/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mahsulot kategoriyalarini tartiblash (settings.edit ruxsati)
+         * @description ids kompaniyaning jonli kategoriyalarining hammasini bir martadan nomlashi shart; ro'yxat boshqa joyda o'zgargan bo'lsa 409 order_changed.
+         */
+        put: operations["orderProductCategories"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/app/product-categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Mahsulot kategoriyasini o'chirish (settings.delete ruxsati)
+         * @description Yashiriladi, nomi bo'shaydi. Jonli mahsuloti (nofaoli ham) bor kategoriya o'chirilmaydi (409 category_in_use).
+         */
+        delete: operations["deleteProductCategory"];
+        options?: never;
+        head?: never;
+        /**
+         * Mahsulot kategoriyasi nomini o'zgartirish (settings.edit ruxsati)
+         * @description Mahsulotlar kategoriyani yangi nomi bilan ko'rsatadi.
+         */
+        patch: operations["renameProductCategory"];
+        trace?: never;
+    };
     "/app/me/tab-bar": {
         parameters: {
             query?: never;
@@ -2845,6 +2915,19 @@ export interface components {
             /** @description Shu turning jonli kategoriyalari, yangi tartibda, har biri bir marta */
             ids: number[];
         };
+        /** @description Mahsulotlar kategoriyasi (logic/products.md, 3.4) */
+        ProductCategory: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+        };
+        ProductCategoryInput: {
+            name: string;
+        };
+        ProductCategoryOrder: {
+            /** @description Kompaniyaning jonli kategoriyalari, yangi tartibda, har biri bir marta */
+            ids: number[];
+        };
         AppUser: {
             phone: string;
             /** @description Tanlangan kompaniyadagi ismi. Kompaniya tanlanmagan yoki a'zolikda ism bo'lmasa, userning o'z ismi. */
@@ -4604,6 +4687,15 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description Bu nomli kategoriya bor (name_taken, "Bu nomli kategoriya allaqachon bor"); ro'yxat boshqa joyda o'zgargan (order_changed, "Ro'yxat o'zgargan. Sahifani yangilang"); mahsuloti bor kategoriya (category_in_use, "Bu kategoriyada N ta mahsulot bor") */
+        ProductCategoryConflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description Kompaniya owner'ini user app'dan o'zgartirib yoki o'chirib bo'lmaydi (cannot_change_owner); buni admin panel qiladi */
         CannotChangeOwner: {
             headers: {
@@ -5991,6 +6083,142 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["FinanceCategoryConflict"];
+        };
+    };
+    listProductCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kategoriyalar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCategory"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["CompanyRequired"];
+        };
+    };
+    createProductCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Qo'shilgan kategoriya */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCategory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["ProductCategoryConflict"];
+        };
+    };
+    orderProductCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCategoryOrder"];
+            };
+        };
+        responses: {
+            /** @description Tartiblandi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["ProductCategoryConflict"];
+        };
+    };
+    deleteProductCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O'chirildi */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["ProductCategoryConflict"];
+        };
+    };
+    renameProductCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProductCategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Kategoriya endi */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductCategory"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            402: components["responses"]["SubscriptionExpired"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["ProductCategoryConflict"];
         };
     };
     setTabBar: {

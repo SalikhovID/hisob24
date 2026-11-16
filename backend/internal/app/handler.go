@@ -103,6 +103,7 @@ func (h *Handler) Routes(r chi.Router) {
 				r.Get("/order-stages", h.listOrderStages)
 				r.Get("/order-types", h.listOrderTypes)
 				r.Get("/finance-categories", h.listFinanceCategories)
+				r.Get("/product-categories", h.listProductCategories)
 
 				allowed := func(p access.Permission) chi.Router { return r.With(h.requirePermission(p)) }
 				// The rates of the company's currencies (logic/currencies.md,
@@ -116,7 +117,8 @@ func (h *Handler) Routes(r chi.Router) {
 				allowed(access.EmployeesDelete).Delete("/employees/{phone}", h.removeEmployee)
 
 				// The settings: what the customers and the orders are asked,
-				// and the stages the orders go through.
+				// and the stages the orders go through, the finance and product
+				// categories.
 				r.Group(func(r chi.Router) {
 					r.Use(h.requirePermission(access.SettingsCreate))
 					r.Post("/customer-dropdowns", h.createCustomerDropdown)
@@ -127,6 +129,7 @@ func (h *Handler) Routes(r chi.Router) {
 					r.Post("/order-types", h.createOrderType)
 					r.Post("/order-types/{id}/fields", h.addOrderField)
 					r.Post("/finance-categories", h.createFinanceCategory)
+					r.Post("/product-categories", h.createProductCategory)
 				})
 				r.Group(func(r chi.Router) {
 					r.Use(h.requirePermission(access.SettingsEdit))
@@ -145,6 +148,8 @@ func (h *Handler) Routes(r chi.Router) {
 					r.Put("/order-types/{id}/fields/order", h.reorderOrderFields)
 					r.Put("/finance-categories/order", h.orderFinanceCategories)
 					r.Patch("/finance-categories/{id}", h.updateFinanceCategory)
+					r.Put("/product-categories/order", h.orderProductCategories)
+					r.Patch("/product-categories/{id}", h.renameProductCategory)
 				})
 				r.Group(func(r chi.Router) {
 					r.Use(h.requirePermission(access.SettingsDelete))
@@ -156,6 +161,7 @@ func (h *Handler) Routes(r chi.Router) {
 					r.Delete("/order-types/{id}", h.deleteOrderType)
 					r.Delete("/order-types/{id}/fields/{fieldId}", h.deleteOrderField)
 					r.Delete("/finance-categories/{id}", h.deleteFinanceCategory)
+					r.Delete("/product-categories/{id}", h.deleteProductCategory)
 				})
 
 				allowed(access.CustomersView).Get("/customers", h.listCustomers)
