@@ -18,8 +18,8 @@ import { cn } from "@/lib/utils"
 
 // StockSummary is the warehouse's «Qoldiq» table (logic/warehouse.md,
 // section 5), as the prototype's: a product a row by name (its SKU under
-// it, «Nofaol» when turned off), its stock in every location of the
-// member's (the current one bold), the sum and its value at the last
+// it, «Nofaol» when turned off), its category, its stock in every location
+// of the member's (the current one bold), the sum and its value at the last
 // purchase price; a search by name or SKU, twenty to a page. On a phone a
 // product is a row: the stock by location under its name (with two or
 // more), the current location's at its right.
@@ -46,6 +46,7 @@ export function StockSummary({ companyId }: { companyId: number }) {
         </span>
       ),
     },
+    { key: "category", label: "Kategoriya", render: (item) => item.category_name ?? "—" },
     ...(summary.data?.items[0]?.locations ?? []).map((l) => ({
       key: `location-${l.location_id}`,
       label: nameOf(l.location_id),
