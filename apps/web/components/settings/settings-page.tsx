@@ -25,9 +25,10 @@ const count = (items: unknown[] | undefined) => items && <span className="text-m
 // alone (the sections are the sidebar's). The settings are each part with
 // how many it holds (the customer and order types, the stages, the
 // dropdowns, the product categories; the currency rates and the finance
-// categories; the roles, the owner's alone) for the owner or an employee whose role holds
-// settings.view, and the choice of the tab bar's pages for everyone. An
-// address of the old tabs (/settings?tab=x) leads to the part's page.
+// categories; the roles, the owner's alone) for the owner or an employee
+// whose role holds settings.view, and the choice of the tab bar's pages for
+// everyone. An address of the old tabs (/settings?tab=x) leads to the
+// part's page.
 export function SettingsPage() {
   const gate = useGate(() => true)
   const me = useMe()
