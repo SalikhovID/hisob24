@@ -2071,3 +2071,41 @@ func TestTheRateSourcesMigrationDownGivesTheRunsRowsTheOwner(t *testing.T) {
 	_, err = pool.Exec(ctx, "SELECT rate_source, rate_rounding FROM companies")
 	assert.Equal(t, "42703", sqlState(err), "and the companies'")
 }
+
+// A company files its products under categories of its own
+// (logic/products.md, 3.4): a name is one category's in the company,
+// whatever the case, and free again once it is deleted; a product is filed
+// under its own company's category, a service under none.
+func TestProductCategoriesKeepTheirRules(t *testing.T) {
+	pool := pgtest.New(t)
+	ctx := t.Context()
+	olma := addWarehouseFixture(t, pool, "Olma")
+	nok := addCompany(t, pool, "Nok")
+	category := func(companyID int64, name string) (int64, error) {
+		var id int64
+		err := pool.QueryRow(ctx, "INSERT INTO product_categories (company_id, name, position) VALUES ($1, $2, 1) RETURNING id", companyID, name).Scan(&id)
+		return id, err
+	}
+	drinks, err := category(olma.company, "Ichimliklar")
+	require.NoError(t, err)
+
+	_, err = category(olma.company, "ICHIMLIKLAR")
+	assert.Equal(t, "23505", sqlState(err), "a name is one category's in the company, whatever the case")
+	nokDrinks, err := category(nok, "Ichimliklar")
+	require.NoError(t, err, "another company has its own names")
+	_, err = pool.Exec(ctx, "UPDATE product_categories SET deleted_at = now() WHERE id = $1", drinks)
+	require.NoError(t, err)
+	_, err = category(olma.company, "Ichimliklar")
+	assert.NoError(t, err, "a deleted category's name is free again")
+
+	_, err = pool.Exec(ctx, "UPDATE products SET category_id = $1 WHERE id = $2", nokDrinks, olma.product)
+	assert.Equal(t, "23503", sqlState(err), "a product is filed under its own company's category")
+	sweets, err := category(olma.company, "Shirinliklar")
+	require.NoError(t, err)
+	var service int64
+	require.NoError(t, pool.QueryRow(ctx, "INSERT INTO products (company_id, kind, name, created_by) VALUES ($1, 'service', 'Yetkazish', '998901111111') RETURNING id", olma.company).Scan(&service))
+	_, err = pool.Exec(ctx, "UPDATE products SET category_id = $1 WHERE id = $2", sweets, service)
+	assert.Equal(t, "23514", sqlState(err), "a service has no category")
+	_, err = pool.Exec(ctx, "UPDATE products SET category_id = $1 WHERE id = $2", sweets, olma.product)
+	assert.NoError(t, err, "a product has one")
+}
