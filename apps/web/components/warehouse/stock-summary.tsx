@@ -2,6 +2,8 @@
 
 import { PackageIcon, SearchIcon } from "lucide-react"
 import { useState } from "react"
+import { CategoryFilter, type CategoryChoice } from "@/components/catalog/category-filter"
+import { Chips } from "@/components/kit/chips"
 import { type Column, DataTable } from "@/components/kit/data-table"
 import { Foot } from "@/components/kit/group"
 import { SearchBox } from "@/components/kit/search-box"
@@ -20,13 +22,15 @@ import { cn } from "@/lib/utils"
 // section 5), as the prototype's: a product a row by name (its SKU under
 // it, «Nofaol» when turned off), its category, its stock in every location
 // of the member's (the current one bold), the sum and its value at the last
-// purchase price; a search by name or SKU, twenty to a page. On a phone a
+// purchase price; a search by name or SKU and the «Kategoriya» chip (a
+// category, or the products with none), twenty to a page. On a phone a
 // product is a row: the stock by location under its name (with two or
 // more), the current location's at its right.
 export function StockSummary({ companyId }: { companyId: number }) {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
-  const summary = useStockSummary(companyId, { search, page })
+  const [category, setCategory] = useState<CategoryChoice>(null)
+  const summary = useStockSummary(companyId, { search, page, category })
   const { locations, current } = useLocation()
   const currencies = useCurrencies()
   const nameOf = (id: number) => locations.find((location) => location.id === id)?.name ?? ""
@@ -76,6 +80,16 @@ export function StockSummary({ companyId }: { companyId: number }) {
           }}
           placeholder="Nomi yoki artikul"
         />
+        <Chips>
+          <CategoryFilter
+            companyId={companyId}
+            value={category}
+            onChange={(next) => {
+              setCategory(next)
+              setPage(1)
+            }}
+          />
+        </Chips>
       </Toolbar>
       {summary.isPending && <ListLoading rows={5} />}
       {summary.isError && <Failed error={summary.error} onRetry={() => summary.refetch()} />}
@@ -97,9 +111,9 @@ export function StockSummary({ companyId }: { companyId: number }) {
             })}
             empty={
               <EmptyState
-                icon={search ? SearchIcon : PackageIcon}
-                title={search ? "Mahsulot topilmadi" : "Hali mahsulot yo'q"}
-                description={search ? "Qidiruvni o'zgartirib ko'ring." : undefined}
+                icon={search || category !== null ? SearchIcon : PackageIcon}
+                title={search || category !== null ? "Mahsulot topilmadi" : "Hali mahsulot yo'q"}
+                description={category !== null ? "Qidiruv yoki filtrni o'zgartirib ko'ring." : search ? "Qidiruvni o'zgartirib ko'ring." : undefined}
               />
             }
           />

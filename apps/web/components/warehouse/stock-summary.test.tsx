@@ -58,3 +58,27 @@ test("a search narrows the table by the name or the SKU", async () => {
     ]),
   )
 })
+
+test("the «Kategoriya» chip narrows the table to a category, or to the products with none", async () => {
+  const catalog = seedCatalog()
+  seedWarehouse(catalog)
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Mevalar", position: 1 }, { id: 7002, companyId: 1, name: "Ichimliklar", position: 2 })
+  catalog.olma.categoryId = 7001
+  await signIn(ALI)
+  const { user } = renderWithProviders(<StockSummary companyId={1} />)
+  await screen.findByRole("table", { name: "Qoldiq" })
+  const names = () => within(screen.getByRole("table", { name: "Qoldiq" })).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell")[0].textContent)
+  const pick = async (chip: string, option: string) => {
+    await user.click(screen.getByRole("button", { name: chip }))
+    await user.click(within(await screen.findByRole("dialog", { name: "Kategoriya" })).getByRole("option", { name: option }))
+  }
+
+  await pick("Kategoriya", "Mevalar")
+  await waitFor(() => expect(names()).toEqual([expect.stringContaining("Olma")]))
+  expect(screen.getByRole("button", { name: "Mevalar" })).toHaveAttribute("aria-pressed", "true")
+  await pick("Mevalar", "Kategoriyasiz")
+  await waitFor(() => expect(names()).toEqual([expect.stringContaining("Eski mahsulot"), expect.stringContaining("Nok")]))
+  await pick("Kategoriyasiz", "Ichimliklar")
+  expect(await screen.findByText("Mahsulot topilmadi")).toBeInTheDocument()
+  expect(screen.getByText("Qidiruv yoki filtrni o'zgartirib ko'ring.")).toBeInTheDocument()
+})
