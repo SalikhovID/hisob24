@@ -16,16 +16,20 @@ const countProducts = `-- name: CountProducts :one
 SELECT count(*) FROM products p
 WHERE p.company_id = $1 AND p.deleted_at IS NULL
   AND p.kind = $2 AND p.is_active = $3
-  AND ($4::text IS NULL
-       OR p.name ILIKE '%' || $4::text || '%'
-       OR p.sku ILIKE '%' || $4::text || '%')
+  AND ($4::bigint IS NULL OR p.category_id = $4::bigint)
+  AND (NOT $5::bool OR p.category_id IS NULL)
+  AND ($6::text IS NULL
+       OR p.name ILIKE '%' || $6::text || '%'
+       OR p.sku ILIKE '%' || $6::text || '%')
 `
 
 type CountProductsParams struct {
-	CompanyID int64
-	Kind      string
-	IsActive  bool
-	Search    *string
+	CompanyID     int64
+	Kind          string
+	IsActive      bool
+	CategoryID    *int64
+	Uncategorized bool
+	Search        *string
 }
 
 // How many rows ListProducts finds under the same filter, on all of its pages.
@@ -34,6 +38,8 @@ func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (i
 		arg.CompanyID,
 		arg.Kind,
 		arg.IsActive,
+		arg.CategoryID,
+		arg.Uncategorized,
 		arg.Search,
 	)
 	var count int64
@@ -219,21 +225,25 @@ LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN t
                    ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
 WHERE p.company_id = $2 AND p.deleted_at IS NULL
   AND p.kind = $3 AND p.is_active = $4
-  AND ($5::text IS NULL
-       OR p.name ILIKE '%' || $5::text || '%'
-       OR p.sku ILIKE '%' || $5::text || '%')
+  AND ($5::bigint IS NULL OR p.category_id = $5::bigint)
+  AND (NOT $6::bool OR p.category_id IS NULL)
+  AND ($7::text IS NULL
+       OR p.name ILIKE '%' || $7::text || '%'
+       OR p.sku ILIKE '%' || $7::text || '%')
 ORDER BY lower(p.name), p.id
-LIMIT $7 OFFSET $6
+LIMIT $9 OFFSET $8
 `
 
 type ListProductsParams struct {
-	LocationIds []int64
-	CompanyID   int64
-	Kind        string
-	IsActive    bool
-	Search      *string
-	Offset      int32
-	Limit       int32
+	LocationIds   []int64
+	CompanyID     int64
+	Kind          string
+	IsActive      bool
+	CategoryID    *int64
+	Uncategorized bool
+	Search        *string
+	Offset        int32
+	Limit         int32
 }
 
 type ListProductsRow struct {
@@ -259,7 +269,8 @@ type ListProductsRow struct {
 // A page of the company's products or services (kind), the active or the
 // inactive ones (is_active), by name whatever the case, without the deleted.
 // search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
-// leaves it out. The columns are GetProduct's (quantity in the locations
+// leaves it out. category_id keeps the products of the category, uncategorized
+// the ones with none. The columns are GetProduct's (quantity in the locations
 // given, last_price with its currency, the category's name).
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error) {
 	rows, err := q.db.Query(ctx, listProducts,
@@ -267,6 +278,8 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 		arg.CompanyID,
 		arg.Kind,
 		arg.IsActive,
+		arg.CategoryID,
+		arg.Uncategorized,
 		arg.Search,
 		arg.Offset,
 		arg.Limit,

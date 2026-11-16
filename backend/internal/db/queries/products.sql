@@ -39,7 +39,8 @@ WHERE p.id = sqlc.arg('id') AND p.company_id = sqlc.arg('company_id') AND p.dele
 -- A page of the company's products or services (kind), the active or the
 -- inactive ones (is_active), by name whatever the case, without the deleted.
 -- search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
--- leaves it out. The columns are GetProduct's (quantity in the locations
+-- leaves it out. category_id keeps the products of the category, uncategorized
+-- the ones with none. The columns are GetProduct's (quantity in the locations
 -- given, last_price with its currency, the category's name).
 SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
        p.category_id, c.name AS category_name,
@@ -57,6 +58,8 @@ LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN t
                    ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
 WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL
   AND p.kind = sqlc.arg('kind') AND p.is_active = sqlc.arg('is_active')
+  AND (sqlc.narg('category_id')::bigint IS NULL OR p.category_id = sqlc.narg('category_id')::bigint)
+  AND (NOT sqlc.arg('uncategorized')::bool OR p.category_id IS NULL)
   AND (sqlc.narg('search')::text IS NULL
        OR p.name ILIKE '%' || sqlc.narg('search')::text || '%'
        OR p.sku ILIKE '%' || sqlc.narg('search')::text || '%')
@@ -68,6 +71,8 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 SELECT count(*) FROM products p
 WHERE p.company_id = sqlc.arg('company_id') AND p.deleted_at IS NULL
   AND p.kind = sqlc.arg('kind') AND p.is_active = sqlc.arg('is_active')
+  AND (sqlc.narg('category_id')::bigint IS NULL OR p.category_id = sqlc.narg('category_id')::bigint)
+  AND (NOT sqlc.arg('uncategorized')::bool OR p.category_id IS NULL)
   AND (sqlc.narg('search')::text IS NULL
        OR p.name ILIKE '%' || sqlc.narg('search')::text || '%'
        OR p.sku ILIKE '%' || sqlc.narg('search')::text || '%');

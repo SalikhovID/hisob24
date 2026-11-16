@@ -724,7 +724,8 @@ type Querier interface {
 	// A page of the company's products or services (kind), the active or the
 	// inactive ones (is_active), by name whatever the case, without the deleted.
 	// search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
-	// leaves it out. The columns are GetProduct's (quantity in the locations
+	// leaves it out. category_id keeps the products of the category, uncategorized
+	// the ones with none. The columns are GetProduct's (quantity in the locations
 	// given, last_price with its currency, the category's name).
 	ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error)
 	// A page of the company's purchases in the locations given, the newest

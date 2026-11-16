@@ -330,3 +330,44 @@ func TestAProductIsFiledUnderACategory(t *testing.T) {
 	}
 	assert.Equal(t, map[string]*string{"Kola": nil, "Tort": ptr("Shirinliklar")}, listed, "the list reads the category's name too")
 }
+
+// The list narrows to a category's products, or to the ones with none
+// (logic/products.md, section 5), and counts under the same filter.
+func TestProductsAreListedByCategory(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	createUser(t, q, enteredBy, "Ali Valiyev")
+	drinks, err := q.CreateProductCategory(ctx, gen.CreateProductCategoryParams{CompanyID: olma.ID, Name: "Ichimliklar"})
+	require.NoError(t, err)
+	sweets, err := q.CreateProductCategory(ctx, gen.CreateProductCategoryParams{CompanyID: olma.ID, Name: "Shirinliklar"})
+	require.NoError(t, err)
+	enter := func(name string, category *int64) {
+		_, err := q.CreateProduct(ctx, gen.CreateProductParams{CompanyID: olma.ID, Kind: "product", Name: name, Unit: ptr("dona"), CurrencyID: 1, CategoryID: category, CreatedBy: enteredBy})
+		require.NoError(t, err)
+	}
+	enter("Kola", &drinks.ID)
+	enter("Fanta", &drinks.ID)
+	enter("Tort", &sweets.ID)
+	enter("Non", nil)
+	names := func(category *int64, uncategorized bool) []string {
+		rows, err := q.ListProducts(ctx, gen.ListProductsParams{CompanyID: olma.ID, Kind: "product", IsActive: true, CategoryID: category, Uncategorized: uncategorized, Limit: 20})
+		require.NoError(t, err)
+		out := []string{}
+		for _, r := range rows {
+			out = append(out, r.Name)
+		}
+		return out
+	}
+	count := func(category *int64, uncategorized bool) int64 {
+		n, err := q.CountProducts(ctx, gen.CountProductsParams{CompanyID: olma.ID, Kind: "product", IsActive: true, CategoryID: category, Uncategorized: uncategorized})
+		require.NoError(t, err)
+		return n
+	}
+
+	assert.Equal(t, []string{"Fanta", "Kola", "Non", "Tort"}, names(nil, false), "every product with no category asked")
+	assert.Equal(t, []string{"Fanta", "Kola"}, names(&drinks.ID, false), "a category's own")
+	assert.Equal(t, []string{"Non"}, names(nil, true), "the ones with none")
+	assert.EqualValues(t, 2, count(&drinks.ID, false), "counted under the same filter")
+	assert.EqualValues(t, 1, count(nil, true))
+}
