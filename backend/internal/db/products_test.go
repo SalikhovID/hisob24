@@ -287,3 +287,46 @@ func TestProductStanding(t *testing.T) {
 	_, err = q.ProductStanding(ctx, gen.ProductStandingParams{ID: 999999, CompanyID: w.company})
 	assert.ErrorIs(t, err, pgx.ErrNoRows)
 }
+
+// A product is filed under a category of its company or none
+// (logic/products.md, 3.4): entered and edited with it, and read with the
+// category's name.
+func TestAProductIsFiledUnderACategory(t *testing.T) {
+	q, pool := setup(t)
+	ctx := t.Context()
+	olma := createCompany(t, q, "Olma", today(t, pool))
+	createUser(t, q, enteredBy, "Ali Valiyev")
+	drinks, err := q.CreateProductCategory(ctx, gen.CreateProductCategoryParams{CompanyID: olma.ID, Name: "Ichimliklar"})
+	require.NoError(t, err)
+	sweets, err := q.CreateProductCategory(ctx, gen.CreateProductCategoryParams{CompanyID: olma.ID, Name: "Shirinliklar"})
+	require.NoError(t, err)
+
+	cola, err := q.CreateProduct(ctx, gen.CreateProductParams{CompanyID: olma.ID, Kind: "product", Name: "Kola", Unit: ptr("dona"), CurrencyID: 1, CategoryID: &drinks.ID, CreatedBy: enteredBy})
+	require.NoError(t, err)
+	assert.Equal(t, &drinks.ID, cola.CategoryID, "entered with its category")
+	cake := createProduct(t, q, olma.ID, "product", "Tort", ptr("dona"))
+	assert.Nil(t, cake.CategoryID, "or with none")
+
+	got, err := q.GetProduct(ctx, gen.GetProductParams{ID: cola.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Equal(t, &drinks.ID, got.CategoryID)
+	assert.Equal(t, ptr("Ichimliklar"), got.CategoryName, "read with the category's name")
+	got, err = q.GetProduct(ctx, gen.GetProductParams{ID: cake.ID, CompanyID: olma.ID})
+	require.NoError(t, err)
+	assert.Nil(t, got.CategoryName, "and none with none")
+
+	moved, err := q.UpdateProduct(ctx, gen.UpdateProductParams{ID: cake.ID, CompanyID: olma.ID, Name: "Tort", Unit: ptr("dona"), CurrencyID: 1, CategoryID: &sweets.ID})
+	require.NoError(t, err)
+	assert.Equal(t, &sweets.ID, moved.CategoryID, "an edit files it")
+	cleared, err := q.UpdateProduct(ctx, gen.UpdateProductParams{ID: cola.ID, CompanyID: olma.ID, Name: "Kola", Unit: ptr("dona"), CurrencyID: 1})
+	require.NoError(t, err)
+	assert.Nil(t, cleared.CategoryID, "and one with none takes it out")
+
+	rows, err := q.ListProducts(ctx, gen.ListProductsParams{CompanyID: olma.ID, Kind: "product", IsActive: true, Limit: 20})
+	require.NoError(t, err)
+	listed := map[string]*string{}
+	for _, r := range rows {
+		listed[r.Name] = r.CategoryName
+	}
+	assert.Equal(t, map[string]*string{"Kola": nil, "Tort": ptr("Shirinliklar")}, listed, "the list reads the category's name too")
+}

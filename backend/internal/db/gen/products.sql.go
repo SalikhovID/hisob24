@@ -42,9 +42,9 @@ func (q *Queries) CountProducts(ctx context.Context, arg CountProductsParams) (i
 }
 
 const createProduct = `-- name: CreateProduct :one
-INSERT INTO products (company_id, kind, name, unit, sku, price, currency_id, note, created_by, created_by_name)
+INSERT INTO products (company_id, kind, name, unit, sku, price, currency_id, category_id, note, created_by, created_by_name)
 VALUES ($1, $2, $3, $4, $5,
-        $6, $7, $8, $9, $10)
+        $6, $7, $8, $9, $10, $11)
 RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id, category_id
 `
 
@@ -56,12 +56,14 @@ type CreateProductParams struct {
 	Sku           *string
 	Price         pgtype.Numeric
 	CurrencyID    int64
+	CategoryID    *int64
 	Note          *string
 	CreatedBy     string
 	CreatedByName *string
 }
 
-// Enters a product (unit set) or a service (unit NULL). created_by_name is
+// Enters a product (unit set, a category or none) or a service (unit and
+// category NULL). created_by_name is
 // the name the member who enters it goes by in the company now: it stays
 // when they leave. The name is one row's among the company's rows of the
 // kind, the SKU one product's in the company (23505, whatever the case).
@@ -74,6 +76,7 @@ func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (P
 		arg.Sku,
 		arg.Price,
 		arg.CurrencyID,
+		arg.CategoryID,
 		arg.Note,
 		arg.CreatedBy,
 		arg.CreatedByName,
@@ -123,6 +126,7 @@ func (q *Queries) DeleteProduct(ctx context.Context, arg DeleteProductParams) (i
 
 const getProduct = `-- name: GetProduct :one
 SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
+       p.category_id, c.name AS category_name,
        COALESCE(m.full_name, p.created_by_name) AS created_by_name,
        CASE WHEN p.kind = 'product'
             THEN COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
@@ -131,6 +135,7 @@ SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is
        lp.price AS last_price, COALESCE(lp.currency_id, 0)::bigint AS last_price_currency_id
 FROM products p
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+LEFT JOIN product_categories c ON c.id = p.category_id
 LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
                    WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
                    ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
@@ -155,6 +160,8 @@ type GetProductRow struct {
 	IsActive            bool
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
+	CategoryID          *int64
+	CategoryName        *string
 	CreatedByName       *string
 	Quantity            pgtype.Numeric
 	LastPrice           pgtype.Numeric
@@ -168,7 +175,8 @@ type GetProductRow struct {
 // member's, or the one asked for), NULL for a service; last_price is the
 // price of its newest live purchase or opening stock line, whatever the
 // location, with that document's currency (last_price_currency_id, 0 with
-// no price), NULL when it was never bought.
+// no price), NULL when it was never bought; category_name is the name of
+// its category, NULL with none.
 func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProductRow, error) {
 	row := q.db.QueryRow(ctx, getProduct, arg.LocationIds, arg.ID, arg.CompanyID)
 	var i GetProductRow
@@ -184,6 +192,8 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CategoryID,
+		&i.CategoryName,
 		&i.CreatedByName,
 		&i.Quantity,
 		&i.LastPrice,
@@ -194,6 +204,7 @@ func (q *Queries) GetProduct(ctx context.Context, arg GetProductParams) (GetProd
 
 const listProducts = `-- name: ListProducts :many
 SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is_active, p.created_at, p.updated_at,
+       p.category_id, c.name AS category_name,
        COALESCE(m.full_name, p.created_by_name) AS created_by_name,
        CASE WHEN p.kind = 'product'
             THEN COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
@@ -202,6 +213,7 @@ SELECT p.id, p.kind, p.name, p.unit, p.sku, p.price, p.currency_id, p.note, p.is
        lp.price AS last_price, COALESCE(lp.currency_id, 0)::bigint AS last_price_currency_id
 FROM products p
 LEFT JOIN user_companies m ON m.user_phone = p.created_by AND m.company_id = p.company_id
+LEFT JOIN product_categories c ON c.id = p.category_id
 LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
                    WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
                    ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
@@ -236,6 +248,8 @@ type ListProductsRow struct {
 	IsActive            bool
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
+	CategoryID          *int64
+	CategoryName        *string
 	CreatedByName       *string
 	Quantity            pgtype.Numeric
 	LastPrice           pgtype.Numeric
@@ -246,7 +260,7 @@ type ListProductsRow struct {
 // inactive ones (is_active), by name whatever the case, without the deleted.
 // search, escaped for ILIKE, is looked for in the name and in the SKU; NULL
 // leaves it out. The columns are GetProduct's (quantity in the locations
-// given, last_price with its currency).
+// given, last_price with its currency, the category's name).
 func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]ListProductsRow, error) {
 	rows, err := q.db.Query(ctx, listProducts,
 		arg.LocationIds,
@@ -276,6 +290,8 @@ func (q *Queries) ListProducts(ctx context.Context, arg ListProductsParams) ([]L
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CategoryID,
+			&i.CategoryName,
 			&i.CreatedByName,
 			&i.Quantity,
 			&i.LastPrice,
@@ -357,8 +373,9 @@ func (q *Queries) SetProductActive(ctx context.Context, arg SetProductActivePara
 const updateProduct = `-- name: UpdateProduct :one
 UPDATE products
 SET name = $1, unit = $2, sku = $3, price = $4,
-    currency_id = $5, note = $6, updated_at = now()
-WHERE id = $7 AND company_id = $8 AND deleted_at IS NULL
+    currency_id = $5, category_id = $6,
+    note = $7, updated_at = now()
+WHERE id = $8 AND company_id = $9 AND deleted_at IS NULL
 RETURNING id, company_id, kind, name, unit, sku, price, note, is_active, created_by, created_by_name, created_at, updated_at, deleted_at, currency_id, category_id
 `
 
@@ -368,6 +385,7 @@ type UpdateProductParams struct {
 	Sku        *string
 	Price      pgtype.Numeric
 	CurrencyID int64
+	CategoryID *int64
 	Note       *string
 	ID         int64
 	CompanyID  int64
@@ -383,6 +401,7 @@ func (q *Queries) UpdateProduct(ctx context.Context, arg UpdateProductParams) (P
 		arg.Sku,
 		arg.Price,
 		arg.CurrencyID,
+		arg.CategoryID,
 		arg.Note,
 		arg.ID,
 		arg.CompanyID,
