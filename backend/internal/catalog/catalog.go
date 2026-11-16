@@ -41,6 +41,7 @@ var (
 	errNoUnit          = invalid("Birlikni tanlang")
 	errServiceUnit     = invalid("Xizmatga birlik berilmaydi")
 	errServiceSKU      = invalid("Xizmatga artikul berilmaydi")
+	errServiceCategory = invalid("Xizmatga kategoriya berilmaydi")
 )
 
 // Scope is a member's reach in a company: the company and the locations of
@@ -152,7 +153,8 @@ type checked struct {
 }
 
 // check reads an input of the kind. What is wrong is told in this order:
-// the kind, the name, the unit, the SKU, the price, the note.
+// the kind, the name, the unit, the SKU, the category (of a service), the
+// price, the note.
 func check(kind string, in Input) (checked, error) {
 	if kind != KindProduct && kind != KindService {
 		return checked{}, errNoKind
@@ -175,6 +177,9 @@ func check(kind string, in Input) (checked, error) {
 	}
 	if c.SKU, err = cleanOptional(in.SKU, MaxSKU, "Artikul 60 belgidan oshmasin"); err != nil {
 		return checked{}, err
+	}
+	if kind == KindService && in.CategoryID != nil {
+		return checked{}, errServiceCategory
 	}
 	c.CategoryID = in.CategoryID
 	if c.Price, err = Money(in.Price, "Narx noto'g'ri"); err != nil {

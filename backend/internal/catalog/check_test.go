@@ -37,6 +37,10 @@ func TestCheck(t *testing.T) {
 		"a long SKU":                      {KindProduct, Input{Name: "Olma", Unit: ptr("kg"), SKU: ptr(strings.Repeat("1", 61))}, checked{}, "Artikul 60 belgidan oshmasin"},
 		"a bad price":                     {KindProduct, Input{Name: "Olma", Unit: ptr("kg"), Price: ptr("abc")}, checked{}, "Narx noto'g'ri"},
 		"a long note":                     {KindProduct, Input{Name: "Olma", Unit: ptr("kg"), Note: ptr(strings.Repeat("x", 501))}, checked{}, "Izoh 500 belgidan oshmasin"},
+		"a product in a category":         {KindProduct, Input{Name: "Olma", Unit: ptr("kg"), CategoryID: ptr(int64(7))}, checked{Name: "Olma", Unit: ptr("kg"), CurrencyID: 1, CategoryID: ptr(int64(7))}, ""},
+		"a service with a category":       {KindService, Input{Name: "Yetkazish", CategoryID: ptr(int64(7))}, checked{}, "Xizmatga kategoriya berilmaydi"},
+		"the SKU before the category":     {KindService, Input{Name: "Yetkazish", SKU: ptr("S-1"), CategoryID: ptr(int64(7))}, checked{}, "Xizmatga artikul berilmaydi"},
+		"the category before the price":   {KindService, Input{Name: "Yetkazish", CategoryID: ptr(int64(7)), Price: ptr("abc")}, checked{}, "Xizmatga kategoriya berilmaydi"},
 		"the name before the unit":        {KindProduct, Input{Name: "", Unit: nil}, checked{}, "Nomni kiriting"},
 	} {
 		got, err := check(tc.kind, tc.in)
@@ -53,6 +57,7 @@ func TestCheck(t *testing.T) {
 		assert.Equal(t, tc.want.SKU, got.SKU, name)
 		assert.Equal(t, tc.want.Note, got.Note, name)
 		assert.Equal(t, tc.want.CurrencyID, got.CurrencyID, name)
+		assert.Equal(t, tc.want.CategoryID, got.CategoryID, name)
 		assert.Equal(t, tc.in.Price != nil && *tc.in.Price != "", got.Price.Valid, name)
 	}
 }
