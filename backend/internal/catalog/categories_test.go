@@ -116,3 +116,40 @@ func TestDeleteCategory(t *testing.T) {
 	_, err = s.CreateCategory(ctx, olma, "Ichimliklar")
 	assert.NoError(t, err, "its name is free again")
 }
+
+// The categories go in the order given, which names each live one once and
+// nothing else (409 order_changed otherwise: the list changed elsewhere).
+func TestOrderCategories(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := addCompany(t, pool, "Olma")
+	nok := addCompany(t, pool, "Nok")
+	add := func(companyID int64, name string) int64 {
+		c, err := s.CreateCategory(ctx, companyID, name)
+		require.NoError(t, err)
+		return c.ID
+	}
+	drinks := add(olma, "Ichimliklar")
+	sweets := add(olma, "Shirinliklar")
+	home := add(olma, "Xo'jalik")
+	other := add(nok, "Boshqa")
+	names := func() []string {
+		list, err := s.Categories(ctx, olma)
+		require.NoError(t, err)
+		return categoryNames(list)
+	}
+
+	require.NoError(t, s.OrderCategories(ctx, olma, []int64{home, drinks, sweets}))
+	assert.Equal(t, []string{"Xo'jalik", "Ichimliklar", "Shirinliklar"}, names())
+
+	for name, ids := range map[string][]int64{
+		"one left out":      {home, drinks},
+		"one twice":         {home, drinks, drinks},
+		"another company's": {home, drinks, other},
+		"one more":          {home, drinks, sweets, other},
+	} {
+		err := s.OrderCategories(ctx, olma, ids)
+		refused(t, err, apperr.Conflict, "order_changed", "Ro'yxat o'zgargan. Sahifani yangilang", name)
+	}
+	assert.Equal(t, []string{"Xo'jalik", "Ichimliklar", "Shirinliklar"}, names(), "a refused order changes nothing")
+}

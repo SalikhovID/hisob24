@@ -111,3 +111,22 @@ func (s *Service) DeleteCategory(ctx context.Context, companyID, id int64) error
 		return err
 	})
 }
+
+// OrderCategories puts the company's categories in the order of ids, which
+// has to name each of them once and nothing else.
+func (s *Service) OrderCategories(ctx context.Context, companyID int64, ids []int64) error {
+	return s.write(ctx, companyID, func(q *gen.Queries) error {
+		rows, err := q.ListProductCategories(ctx, companyID)
+		if err != nil {
+			return err
+		}
+		live := make([]int64, 0, len(rows))
+		for _, c := range rows {
+			live = append(live, c.ID)
+		}
+		if !fields.SameIDs(ids, live) {
+			return fields.ErrOrderChanged
+		}
+		return q.OrderProductCategories(ctx, gen.OrderProductCategoriesParams{CompanyID: companyID, Ids: ids})
+	})
+}
