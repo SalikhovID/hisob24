@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 import { Avatar } from "@/components/kit/avatar"
+import { ChoiceChips } from "@/components/kit/chips"
 import { PickRow } from "@/components/kit/form-row"
 import { SearchPickerSheet } from "@/components/kit/picker-sheet"
 import { Badge } from "@/components/ui/badge"
 import { currencyOf, useCurrencies } from "@/lib/currencies"
 import { formatMoney, unitLabel } from "@/lib/format"
 import { formatPhone } from "@/lib/phone"
-import { useProductSuggestions, useSupplierSuggestions } from "@/lib/queries"
+import { useProductCategories, useProductSuggestions, useSupplierSuggestions } from "@/lib/queries"
 import type { LastPrice, ProductKind, Unit } from "@/lib/types"
 
 // PickerItem is a record a picker takes: its id, its name and what is said
@@ -87,6 +88,8 @@ export type Offer = "last_price" | "price"
 // opens a sheet of the active products (or services too, when kinds says
 // so), found by name or SKU as it is typed, each with its unit and the
 // price offered; one already in another line (used) is marked and not taken.
+// With categories the sheet offers their chips («Hammasi» first): a chip
+// keeps its category's products (logic/products.md, 3.4).
 export function ProductPicker({
   companyId,
   kinds = ["product"],
@@ -108,13 +111,15 @@ export function ProductPicker({
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
+  const [category, setCategory] = useState<number | null>(null)
   // Every opening starts with nothing typed.
   const show = (next: boolean) => {
     setOpen(next)
     if (next) setQuery("")
   }
   // The sheet asks once it is open.
-  const suggestions = useProductSuggestions(open ? companyId : null, query, kinds)
+  const suggestions = useProductSuggestions(open ? companyId : null, query, kinds, category)
+  const categories = useProductCategories(open ? companyId : null).data ?? []
   const currencies = useCurrencies()
   const picks: ProductPick[] = (suggestions.data?.items ?? []).map((p) => {
     const price = p.price === null ? null : { amount: p.price, currency_id: p.currency_id }
@@ -138,6 +143,16 @@ export function ProductPicker({
         placeholder="Nom yoki artikul"
         query={query}
         onQuery={setQuery}
+        filters={
+          categories.length > 0 && (
+            <ChoiceChips
+              label="Kategoriya"
+              value={category === null ? "all" : String(category)}
+              onChange={(next) => setCategory(next === "all" ? null : Number(next))}
+              options={[{ value: "all", label: "Hammasi" }, ...categories.map((c) => ({ value: String(c.id), label: c.name }))]}
+            />
+          )
+        }
         options={picks.map((pick) => {
           const taken = used.includes(pick.id) && pick.id !== value?.id
           return {

@@ -597,13 +597,16 @@ export function useProductPurchases(companyId: number | null, id: number, page: 
 
 // useProductSuggestions is the active products (and services, when asked)
 // whose names or SKUs hold the text typed, for the picker of a document's
-// lines: the products first, then the services.
-export function useProductSuggestions(companyId: number | null, text: string, kinds: readonly ProductKind[] = ["product"]) {
+// lines: the products first, then the services. With a category (its id)
+// only its products are asked: a service has no category.
+export function useProductSuggestions(companyId: number | null, text: string, kinds: readonly ProductKind[] = ["product"], categoryId: number | null = null) {
   const search = text.trim()
   return useQuery({
-    queryKey: [...productsKey(companyId), "suggest", search, kinds],
+    queryKey: [...productsKey(companyId), "suggest", search, kinds, categoryId],
     queryFn: async () => {
-      const pages = await Promise.all(kinds.map((kind) => call(api.GET("/app/products", { params: { query: { kind, status: "active", search, page: 1 } } }))))
+      const asked = categoryId === null ? kinds : kinds.filter((kind) => kind === "product")
+      const category_id = categoryId === null ? undefined : String(categoryId)
+      const pages = await Promise.all(asked.map((kind) => call(api.GET("/app/products", { params: { query: { kind, status: "active", search, category_id, page: 1 } } }))))
       return { items: pages.flatMap((page) => page.items) }
     },
     // Nothing typed is the first active ones: a picker's sheet opens with them.
