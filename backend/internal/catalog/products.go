@@ -125,7 +125,7 @@ func (s *Service) Create(ctx context.Context, scope Scope, by string, in Input) 
 			return err
 		}
 		row, err := q.CreateProduct(ctx, gen.CreateProductParams{
-			CompanyID: companyID, Kind: in.Kind, Name: c.Name, Unit: c.Unit, Sku: c.SKU, Price: c.Price, CurrencyID: c.CurrencyID, Note: c.Note,
+			CompanyID: companyID, Kind: in.Kind, Name: c.Name, Unit: c.Unit, Sku: c.SKU, Price: c.Price, CurrencyID: c.CurrencyID, CategoryID: c.CategoryID, Note: c.Note,
 			CreatedBy: by, CreatedByName: name,
 		})
 		if fields.Taken(err) {
@@ -159,7 +159,7 @@ func (s *Service) Update(ctx context.Context, scope Scope, id int64, in Input) (
 			return err
 		}
 		_, err = q.UpdateProduct(ctx, gen.UpdateProductParams{
-			ID: id, CompanyID: companyID, Name: c.Name, Unit: c.Unit, Sku: c.SKU, Price: c.Price, CurrencyID: c.CurrencyID, Note: c.Note,
+			ID: id, CompanyID: companyID, Name: c.Name, Unit: c.Unit, Sku: c.SKU, Price: c.Price, CurrencyID: c.CurrencyID, CategoryID: c.CategoryID, Note: c.Note,
 		})
 		if fields.Taken(err) {
 			return takenError(err, was.Kind)

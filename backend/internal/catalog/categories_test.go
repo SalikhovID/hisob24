@@ -153,3 +153,50 @@ func TestOrderCategories(t *testing.T) {
 	}
 	assert.Equal(t, []string{"Xo'jalik", "Ichimliklar", "Shirinliklar"}, names(), "a refused order changes nothing")
 }
+
+// A product is entered and edited with a category of its company, or with
+// none, and carries the category's name as it is now (logic/products.md,
+// 3.4).
+func TestAProductIsFiledUnderACategory(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	olma := newShop(t, pool, "Olma")
+	drinks, err := s.CreateCategory(ctx, olma.company, "Ichimliklar")
+	require.NoError(t, err)
+	sweets, err := s.CreateCategory(ctx, olma.company, "Shirinliklar")
+	require.NoError(t, err)
+	filed := func(name string, category *int64) Input {
+		in := product(name, "dona")
+		in.CategoryID = category
+		return in
+	}
+
+	cola, err := s.Create(ctx, olma.scope(), ali, filed("Kola", &drinks.ID))
+	require.NoError(t, err)
+	assert.Equal(t, &drinks.ID, cola.CategoryID)
+	assert.Equal(t, ptr("Ichimliklar"), cola.CategoryName, "with its category's name")
+	cake, err := s.Create(ctx, olma.scope(), ali, filed("Tort", nil))
+	require.NoError(t, err)
+	assert.Nil(t, cake.CategoryID, "a category is not needed")
+	assert.Nil(t, cake.CategoryName)
+
+	moved, err := s.Update(ctx, olma.scope(), cake.ID, filed("Tort", &sweets.ID))
+	require.NoError(t, err)
+	assert.Equal(t, ptr("Shirinliklar"), moved.CategoryName, "an edit files it")
+	cleared, err := s.Update(ctx, olma.scope(), cola.ID, filed("Kola", nil))
+	require.NoError(t, err)
+	assert.Nil(t, cleared.CategoryID, "and an edit with none takes it out")
+
+	_, err = s.RenameCategory(ctx, olma.company, sweets.ID, "Desertlar")
+	require.NoError(t, err)
+	got, err := s.Get(ctx, olma.scope(), cake.ID)
+	require.NoError(t, err)
+	assert.Equal(t, ptr("Desertlar"), got.CategoryName, "the category's name as it is now")
+	page, err := s.List(ctx, olma.scope(), ListInput{Page: 1})
+	require.NoError(t, err)
+	listed := map[string]*string{}
+	for _, p := range page.Items {
+		listed[p.Name] = p.CategoryName
+	}
+	assert.Equal(t, map[string]*string{"Kola": nil, "Tort": ptr("Desertlar")}, listed, "the list carries it too")
+}

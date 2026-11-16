@@ -112,6 +112,10 @@ type Product struct {
 	// opening stock line, whatever the location, with that document's
 	// currency; nil when it was never bought.
 	LastPrice *LastPrice
+	// CategoryID is the product's category (logic/products.md, 3.4) and
+	// CategoryName its name as it is now; nil with none, and for a service.
+	CategoryID   *int64
+	CategoryName *string
 	// CreatedByName is the name the member who entered it goes by in the
 	// company; nil when they go by none.
 	CreatedByName *string
@@ -129,6 +133,8 @@ type Input struct {
 	Price *string
 	// CurrencyID is the currency of the price; nil is the so'm.
 	CurrencyID *int64
+	// CategoryID is the product's category; nil is none.
+	CategoryID *int64
 	Note       *string
 }
 
@@ -141,6 +147,7 @@ type checked struct {
 	SKU        *string
 	Price      pgtype.Numeric
 	CurrencyID int64
+	CategoryID *int64
 	Note       *string
 }
 
@@ -169,6 +176,7 @@ func check(kind string, in Input) (checked, error) {
 	if c.SKU, err = cleanOptional(in.SKU, MaxSKU, "Artikul 60 belgidan oshmasin"); err != nil {
 		return checked{}, err
 	}
+	c.CategoryID = in.CategoryID
 	if c.Price, err = Money(in.Price, "Narx noto'g'ri"); err != nil {
 		return checked{}, err
 	}
@@ -289,6 +297,7 @@ func toProduct(r gen.GetProductRow) Product {
 	return Product{
 		ID: r.ID, Kind: r.Kind, Name: r.Name, Unit: r.Unit, SKU: r.Sku, Price: Amount(r.Price), CurrencyID: r.CurrencyID, Note: r.Note, Active: r.IsActive,
 		Quantity: QuantityText(r.Quantity), LastPrice: lastPriceOf(r.LastPrice, r.LastPriceCurrencyID),
+		CategoryID: r.CategoryID, CategoryName: r.CategoryName,
 		CreatedByName: r.CreatedByName, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 	}
 }
