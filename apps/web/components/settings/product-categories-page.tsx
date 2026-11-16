@@ -11,6 +11,7 @@ import { api, call } from "@/lib/api"
 import { productCategoriesKey, useProductCategories } from "@/lib/queries"
 import type { ProductCategory } from "@/lib/types"
 import { usePermission } from "@/lib/use-gate"
+import { inOrder, useReorder } from "@/lib/use-reorder"
 import { DeleteDialog } from "./delete-button"
 import { NameDialog } from "./name-dialog"
 
@@ -23,14 +24,16 @@ type Sheet = { add: true } | { act: ProductCategory } | { rename: ProductCategor
 // finance categories' page: the categories in the order the owner put
 // them in, each a row opening a sheet of its actions (renaming, deleting:
 // one with products is refused, the refusal saying how many); the plus adds
-// one at the end.
+// one at the end; the «Tartiblash» mode orders them.
 export function ProductCategoriesPage() {
   const gate = usePermission("settings.view")
   const companyId = gate?.company.id ?? null
   const categories = useProductCategories(companyId)
   const queryClient = useQueryClient()
+  const queryKey = productCategoriesKey(companyId)
   // What a change did shows once the list is asked for again.
-  const refresh = () => queryClient.invalidateQueries({ queryKey: productCategoriesKey(companyId) })
+  const refresh = () => queryClient.invalidateQueries({ queryKey })
+  const reorder = useReorder<ProductCategory[]>(queryKey, inOrder, (ids) => call(api.PUT("/app/product-categories/order", { body: { ids } })))
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const close = (open: boolean) => !open && setSheet(null)
   const actions = (category: ProductCategory) => [
@@ -69,9 +72,15 @@ export function ProductCategoriesPage() {
           items={list}
           getId={(category) => String(category.id)}
           getLabel={(category) => category.name}
-          onReorder={() => undefined}
-          canOrder={false}
-          row={(category) => <Row compact onClick={() => setSheet({ act: category })} title={<span>{category.name}</span>} chevron={false} />}
+          onReorder={(ids) => reorder.mutate(ids.map(Number))}
+          canOrder
+          row={(category, handle) =>
+            handle ? (
+              <Row compact media={handle} title={<span>{category.name}</span>} />
+            ) : (
+              <Row compact onClick={() => setSheet({ act: category })} title={<span>{category.name}</span>} chevron={false} />
+            )
+          }
         />
       )}
       <Foot className="-mt-4">Mahsulot qo&apos;shishda tanlanadi: ichimliklar, shirinliklar, xo&apos;jalik.</Foot>

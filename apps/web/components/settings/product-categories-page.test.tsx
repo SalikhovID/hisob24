@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react"
+import { act, screen, waitFor, within } from "@testing-library/react"
 import { expect, test } from "vitest"
 import { ALI, db, seedCatalog } from "@/mocks/data"
 import { renderWithProviders } from "@/test/render"
@@ -78,4 +78,19 @@ test("a row's sheet renames the category and deletes it; one with products stays
   expect((await screen.findAllByText("Kategoriya o'chirildi")).length).toBeGreaterThan(0)
   await waitFor(() => expect(namesOf(categories())).toEqual(["Shirinliklar"]))
   expect(db.productCategories.find((c) => c.id === 7001)?.deleted).toBe(true)
+})
+
+test("the categories are put in order in the «Tartiblash» mode, and the order is saved", async () => {
+  db.productCategories.push({ id: 7001, companyId: 1, name: "Ichimliklar", position: 1 }, { id: 7002, companyId: 1, name: "Shirinliklar", position: 2 })
+  await signIn(ALI)
+  const { user } = renderWithProviders(<ProductCategoriesPage />)
+  await waitFor(() => expect(namesOf(categories())).toEqual(["Ichimliklar", "Shirinliklar"]))
+
+  await user.click(screen.getByRole("button", { name: "Tartiblash" }))
+  act(() => within(categories()).getByRole("button", { name: "Shirinliklar: tartibini o'zgartirish" }).focus())
+  await user.keyboard("{ArrowUp}")
+
+  expect(namesOf(categories())).toEqual(["Shirinliklar", "Ichimliklar"])
+  const saved = () => db.productCategories.toSorted((a, b) => a.position - b.position).map((c) => c.name)
+  await waitFor(() => expect(saved()).toEqual(["Shirinliklar", "Ichimliklar"]))
 })
