@@ -237,6 +237,9 @@ export interface ProductRow {
   price: string | null
   // currencyId is the currency the price is in (logic/currencies.md).
   currencyId: number
+  // categoryId is the product's category (logic/products.md, 3.4); none
+  // when it is left out or null, and for a service.
+  categoryId?: number | null
   note: string | null
   active: boolean
   by: string
@@ -369,6 +372,16 @@ export interface RateRow {
 
 // A category of the company's expenses or its other income
 // (logic/finance.md, section 6).
+// A category of a company's products (logic/products.md, 3.4): one level,
+// in the company's order. A row is never removed: deleted hides it.
+export interface ProductCategoryRow {
+  id: number
+  companyId: number
+  name: string
+  position: number
+  deleted?: boolean
+}
+
 export interface FinanceCategoryRow {
   id: number
   companyId: number
@@ -424,6 +437,9 @@ interface Db {
   // removed: deleted hides it.
   accounts: Record<number, AppAccount[]>
   financeCategories: FinanceCategoryRow[]
+  // productCategories: the categories of the products (logic/products.md,
+  // 3.4); a row is never removed: deleted hides it.
+  productCategories: ProductCategoryRow[]
   // lastId: the id the last settings or customer row took.
   lastId: number
   // minutes: how far the clock of the customers' timestamps has moved.
@@ -526,6 +542,7 @@ function seed(): Db {
       4: [cashOf(9104)],
     },
     financeCategories: [],
+    productCategories: [],
     minutes: 0,
     members: {
       [ALI]: [{ companyId: 1, role: "owner", joined: 1 }],

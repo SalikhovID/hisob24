@@ -14,6 +14,8 @@ const olma: Product = {
   is_active: true,
   quantity: "0.000",
   last_price: null,
+  category_id: null,
+  category_name: null,
   created_by_name: null,
   created_at: "2026-10-02T06:00:00Z",
   updated_at: "2026-10-02T06:00:00Z",

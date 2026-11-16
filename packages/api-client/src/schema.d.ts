@@ -4319,6 +4319,13 @@ export interface components {
             quantity: string | null;
             /** @description Oxirgi jonli xarid yoki boshlang'ich qoldiq qatoridagi narx, o'sha hujjat valyutasi bilan, qaysi lokatsiyada bo'lmasin; hech qachon olinmagan bo'lsa null (logic/products.md, 6-bo'lim) */
             last_price: components["schemas"]["LastPrice"] | null;
+            /**
+             * Format: int64
+             * @description Mahsulot kategoriyasi (logic/products.md, 3.4); kategoriyasiz mahsulotda va xizmatda null
+             */
+            category_id: number | null;
+            /** @description Kategoriyaning hozirgi nomi; kategoriyasizda null */
+            category_name: string | null;
             /** @description Qo'shgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi */
             created_by_name: string | null;
             /** Format: date-time */
@@ -4337,6 +4344,11 @@ export interface components {
              * @description Narxning valyutasi; berilmasa so'm (1); kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
              */
             currency_id?: number;
+            /**
+             * Format: int64
+             * @description Mahsulot kategoriyasi; berilmasa yoki null bo'lsa kategoriyasiz. Kompaniyaning jonli kategoriyasi bo'lmasa 400 "Kategoriya noto'g'ri"; xizmatga berilsa 400 "Xizmatga kategoriya berilmaydi".
+             */
+            category_id?: number | null;
             note?: string | null;
         };
         ProductUpdate: {
@@ -4349,6 +4361,11 @@ export interface components {
              * @description Narxning valyutasi; berilmasa so'm (1); kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
              */
             currency_id?: number;
+            /**
+             * Format: int64
+             * @description Mahsulot kategoriyasi; berilmasa yoki null bo'lsa kategoriyasiz. Kompaniyaning jonli kategoriyasi bo'lmasa 400 "Kategoriya noto'g'ri"; xizmatga berilsa 400 "Xizmatga kategoriya berilmaydi". Tahrirda yuborilmasa mahsulot kategoriyasiz bo'ladi.
+             */
+            category_id?: number | null;
             note?: string | null;
         };
         ActiveInput: {
@@ -4368,6 +4385,8 @@ export interface components {
             sku: string | null;
             unit: string;
             is_active: boolean;
+            /** @description Mahsulot kategoriyasining nomi; kategoriyasizda null */
+            category_name: string | null;
             /** @description A'zoga ruxsatli har lokatsiyadagi qoldiq, lokatsiyalar tartibida */
             locations: components["schemas"]["LocationQuantity"][];
             /** @description Ruxsatli lokatsiyalardagi qoldiq yig'indisi, uch kasr xonasi bilan */
@@ -8389,6 +8408,8 @@ export interface operations {
                 kind?: components["schemas"]["ProductKind"];
                 status?: "active" | "inactive";
                 search?: string;
+                /** @description Kategoriya id si (shu kategoriyadagi mahsulotlar) yoki none (kategoriyasizlar); berilmasa hammasi. Boshqa qiymat: 400 "Kategoriya noto'g'ri" (logic/products.md, 3.4). */
+                category_id?: string;
                 page?: number;
             };
             header?: never;
@@ -9163,6 +9184,8 @@ export interface operations {
         parameters: {
             query?: {
                 search?: string;
+                /** @description Kategoriya id si (shu kategoriyadagi mahsulotlar) yoki none (kategoriyasizlar); berilmasa hammasi. Boshqa qiymat: 400 "Kategoriya noto'g'ri" (logic/products.md, 3.4). */
+                category_id?: string;
                 page?: number;
             };
             header?: never;

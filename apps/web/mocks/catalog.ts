@@ -8,6 +8,7 @@ import { notAllowed } from "./currencies"
 import { api, fail, permittedSession } from "./gate"
 import { asAmount, asQuantity, documentsHolding, lastPriceOf, liveLocationsIn, livePurchases, locationParam, memberLocationIds, stockOf } from "./warehouse"
 import { itemsOf } from "./ledger"
+import { categoryParam, inCategory, liveProductCategories, productCategoryName } from "./product-categories"
 
 const PAGE_SIZE = 20
 export const units: Unit[] = ["dona", "kg", "g", "l", "ml", "m", "m2", "quti", "juft", "komplekt"]
@@ -32,11 +33,12 @@ function trimmed(raw: unknown): string | null {
   return text === "" ? null : text
 }
 
-type Checked = Pick<ProductRow, "name" | "unit" | "sku" | "price" | "currencyId" | "note">
+type Checked = Pick<ProductRow, "name" | "unit" | "sku" | "price" | "currencyId" | "categoryId" | "note">
 
 // check reads a body as the Go API does, in its order: the kind, the name,
-// the unit, the SKU, the price, the note; then the price's currency, which
-// has to be one of the catalog the company has turned on.
+// the unit, the SKU, the category (of a service), the price, the note; then
+// the price's currency, which has to be one of the catalog the company has
+// turned on, and the category, a live one of the company's.
 function check(kind: unknown, companyId: number, body: Record<string, unknown>): Checked | Response {
   if (kind !== "product" && kind !== "service") return invalid("Turni tanlang")
   const name = trimmed(body.name)
@@ -48,6 +50,8 @@ function check(kind: unknown, companyId: number, body: Record<string, unknown>):
   const sku = trimmed(body.sku)
   if (kind === "service" && sku !== null) return invalid("Xizmatga artikul berilmaydi")
   if (sku !== null && [...sku].length > 60) return invalid("Artikul 60 belgidan oshmasin")
+  const categoryId = body.category_id === undefined || body.category_id === null ? null : Number(body.category_id)
+  if (kind === "service" && categoryId !== null) return invalid("Xizmatga kategoriya berilmaydi")
   const price = typeof body.price === "string" && body.price !== "" ? body.price : null
   if (price !== null && !money.test(price)) return invalid("Narx noto'g'ri")
   const note = trimmed(body.note)
@@ -55,7 +59,8 @@ function check(kind: unknown, companyId: number, body: Record<string, unknown>):
   const currencyId = body.currency_id === undefined || body.currency_id === null ? 1 : Number(body.currency_id)
   if (!CATALOG.some((c) => c.id === currencyId)) return invalid("Valyuta noto'g'ri")
   if (!(db.currencies[companyId] ?? [1]).includes(currencyId)) return notAllowed()
-  return { name, unit: unit as Unit | null, sku, price: price === null ? null : asMoney(price), currencyId, note }
+  if (categoryId !== null && !liveProductCategories(companyId).some((c) => c.id === categoryId)) return invalid("Kategoriya noto'g'ri")
+  return { name, unit: unit as Unit | null, sku, price: price === null ? null : asMoney(price), currencyId, categoryId, note }
 }
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
@@ -86,6 +91,8 @@ export const toProduct = (p: ProductRow, locationIds: number[] = []): Product =>
   is_active: p.active,
   quantity: p.kind === "product" ? asQuantity(stockOf(p.id, locationIds)) : null,
   last_price: lastPriceOf(p.id),
+  category_id: p.categoryId ?? null,
+  category_name: productCategoryName(p.categoryId),
   created_by_name: nameOf(p.by, p.companyId, p.byName),
   created_at: p.createdAt,
   updated_at: p.updatedAt,
@@ -104,6 +111,8 @@ export const catalogHandlers = [
     const location = locationParam(query, mine)
     if (location instanceof Response) return location
     const locations = location ? [location] : mine
+    const category = categoryParam(query)
+    if (category instanceof Response) return category
     const page = query.has("page") ? Number(query.get("page")) : 1
     if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
     const kind = query.get("kind") || "product"
@@ -113,6 +122,7 @@ export const catalogHandlers = [
     const search = (query.get("search") ?? "").trim().toLowerCase()
     const all = liveProducts(member.companyId)
       .filter((p) => p.kind === kind && p.active === (status === "active"))
+      .filter((p) => inCategory(category, p.categoryId))
       .filter((p) => !search || p.name.toLowerCase().includes(search) || (p.sku !== null && p.sku.toLowerCase().includes(search)))
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id)
     return HttpResponse.json({

@@ -3806,6 +3806,15 @@ paths:
           in: query
           schema:
             type: string
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            pattern: "^([1-9][0-9]*|none)$"
+          description: >
+            Kategoriya id si (shu kategoriyadagi mahsulotlar) yoki none
+            (kategoriyasizlar); berilmasa hammasi. Boshqa qiymat: 400
+            "Kategoriya noto'g'ri" (logic/products.md, 3.4).
         - name: page
           in: query
           schema:
@@ -4710,6 +4719,15 @@ paths:
           in: query
           schema:
             type: string
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            pattern: "^([1-9][0-9]*|none)$"
+          description: >
+            Kategoriya id si (shu kategoriyadagi mahsulotlar) yoki none
+            (kategoriyasizlar); berilmasa hammasi. Boshqa qiymat: 400
+            "Kategoriya noto'g'ri" (logic/products.md, 3.4).
         - name: page
           in: query
           schema:
@@ -9286,7 +9304,7 @@ components:
       enum: [dona, kg, g, l, ml, m, m2, quti, juft, komplekt]
     Product:
       type: object
-      required: [id, kind, name, unit, sku, price, currency_id, note, is_active, quantity, last_price, created_by_name, created_at, updated_at]
+      required: [id, kind, name, unit, sku, price, currency_id, note, is_active, quantity, last_price, category_id, category_name, created_by_name, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -9329,6 +9347,13 @@ components:
             Oxirgi jonli xarid yoki boshlang'ich qoldiq qatoridagi narx, o'sha
             hujjat valyutasi bilan, qaysi lokatsiyada bo'lmasin; hech qachon
             olinmagan bo'lsa null (logic/products.md, 6-bo'lim)
+        category_id:
+          type: [integer, "null"]
+          format: int64
+          description: Mahsulot kategoriyasi (logic/products.md, 3.4); kategoriyasiz mahsulotda va xizmatda null
+        category_name:
+          type: [string, "null"]
+          description: Kategoriyaning hozirgi nomi; kategoriyasizda null
         created_by_name:
           type: [string, "null"]
           description: Qo'shgan a'zoning kompaniyadagi hozirgi ismi; chiqarilgan bo'lsa o'sha paytdagi ismi
@@ -9361,6 +9386,14 @@ components:
           type: integer
           format: int64
           description: Narxning valyutasi; berilmasa so'm (1); kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+        category_id:
+          type: [integer, "null"]
+          format: int64
+          description: >
+            Mahsulot kategoriyasi; berilmasa yoki null bo'lsa kategoriyasiz.
+            Kompaniyaning jonli kategoriyasi bo'lmasa 400 "Kategoriya
+            noto'g'ri"; xizmatga berilsa 400 "Xizmatga kategoriya
+            berilmaydi".
         note:
           type: [string, "null"]
           maxLength: 500
@@ -9385,6 +9418,15 @@ components:
           type: integer
           format: int64
           description: Narxning valyutasi; berilmasa so'm (1); kompaniyada yoqilmagan bo'lsa 400 currency_not_allowed
+        category_id:
+          type: [integer, "null"]
+          format: int64
+          description: >
+            Mahsulot kategoriyasi; berilmasa yoki null bo'lsa kategoriyasiz.
+            Kompaniyaning jonli kategoriyasi bo'lmasa 400 "Kategoriya
+            noto'g'ri"; xizmatga berilsa 400 "Xizmatga kategoriya
+            berilmaydi". Tahrirda yuborilmasa
+            mahsulot kategoriyasiz bo'ladi.
         note:
           type: [string, "null"]
           maxLength: 500
@@ -9411,7 +9453,7 @@ components:
           type: integer
     StockSummaryItem:
       type: object
-      required: [product_id, name, sku, unit, is_active, locations, total, last_price, value]
+      required: [product_id, name, sku, unit, is_active, category_name, locations, total, last_price, value]
       properties:
         product_id:
           type: integer
@@ -9424,6 +9466,9 @@ components:
           type: string
         is_active:
           type: boolean
+        category_name:
+          type: [string, "null"]
+          description: Mahsulot kategoriyasining nomi; kategoriyasizda null
         locations:
           type: array
           description: A'zoga ruxsatli har lokatsiyadagi qoldiq, lokatsiyalar tartibida

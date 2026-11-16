@@ -8,6 +8,7 @@ import type { Inventory, InventoryDetail, InventoryItem, Opening, OpeningStock, 
 import { nameOf } from "./customers"
 import { customerNameOf, db, type DocumentKind, type ItemRow, nameIn, nextId, now, type ProductRow, type TransactionRow } from "./data"
 import { api, fail, forbidden, permittedSession } from "./gate"
+import { categoryParam, inCategory, productCategoryName } from "./product-categories"
 import {
   asAmount,
   asQuantity,
@@ -543,19 +544,22 @@ export const stockHandlers = [
   // moves of the document ?exclude_id= left out, by name: what an
   // inventory starts from, or shows while it is edited.
   // The warehouse's «Qoldiq» table (logic/warehouse.md, section 5): the
-  // live products (no service; the turned off ones too) by name, each with
-  // its stock in every location of the member's, the sum, the last price
-  // and the value at it.
+  // live products (no service; the turned off ones too; of a category, or
+  // with none, when asked) by name, each with its stock in every location
+  // of the member's, the sum, the last price and the value at it.
   http.get(api("/app/stock/summary"), ({ request }) => {
     const member = scoped(request, "stock.view")
     if (member instanceof Response) return member
     const query = new URL(request.url).searchParams
     const page = query.has("page") ? Number(query.get("page")) : 1
     if (!Number.isInteger(page) || page < 1) return invalid("Sahifa raqami noto'g'ri")
+    const category = categoryParam(query)
+    if (category instanceof Response) return category
     if (member.allowed.length === 0) return HttpResponse.json({ items: [], total: 0, page, page_size: PAGE_SIZE })
     const search = (query.get("search") ?? "").trim().toLowerCase()
     const all = db.products
       .filter((p) => p.companyId === member.companyId && !p.deleted && p.kind === "product")
+      .filter((p) => inCategory(category, p.categoryId))
       .filter((p) => !search || p.name.toLowerCase().includes(search) || (p.sku !== null && p.sku.toLowerCase().includes(search)))
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.id - b.id)
     const items = all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((p) => {
@@ -567,6 +571,7 @@ export const stockHandlers = [
         sku: p.sku,
         unit: p.unit ?? "",
         is_active: p.active,
+        category_name: productCategoryName(p.categoryId),
         locations: member.allowed.map((id) => ({ location_id: id, quantity: asQuantity(stockOf(p.id, [id])) })),
         total: asQuantity(total),
         last_price: last,

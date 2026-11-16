@@ -2751,6 +2751,7 @@ test("/app/stock/summary is the warehouse's «Qoldiq» table as the Go API answe
     sku: "OL-1",
     unit: "kg",
     is_active: true,
+    category_name: null,
     locations: [
       { location_id: asosiy, quantity: "12.500" },
       { location_id: chilonzor.id, quantity: "0.000" },
@@ -2765,3 +2766,82 @@ test("/app/stock/summary is the warehouse's «Qoldiq» table as the Go API answe
   expect(found.items.map((item) => item.name)).toEqual(["Olma"])
 })
 
+
+// The product categories (logic/products.md, 3.4;
+// backend/internal/app/product_categories_test.go).
+const productCategories = () => call(api.GET("/app/product-categories"))
+const addProductCategory = (name: string) => call(api.POST("/app/product-categories", { body: { name } }))
+const categoryPath = (id: number) => ({ params: { path: { id } } })
+
+test("the product categories are every member's to read and the settings' to keep: added last, renamed, ordered, deleted once empty", async () => {
+  await signIn(ALI)
+  const drinks = await addProductCategory(" Ichimliklar ")
+  expect(drinks).toEqual({ id: drinks.id, name: "Ichimliklar" })
+  const sweets = await addProductCategory("Shirinliklar")
+  expect(await failure(addProductCategory(" "))).toMatchObject({ status: 400, code: "validation_error", message: "Nomni kiriting" })
+  expect(await failure(addProductCategory("a".repeat(61)))).toMatchObject({ status: 400, message: "Nom 60 belgidan oshmasin" })
+  expect(await failure(addProductCategory("ICHIMLIKLAR"))).toMatchObject({ status: 409, code: "name_taken", message: "Bu nomli kategoriya allaqachon bor" })
+
+  const renamed = await call(api.PATCH("/app/product-categories/{id}", { ...categoryPath(drinks.id), body: { name: "Suvlar" } }))
+  expect(renamed).toEqual({ id: drinks.id, name: "Suvlar" })
+  expect(await failure(call(api.PATCH("/app/product-categories/{id}", { ...categoryPath(999999), body: { name: "Suv" } })))).toMatchObject({
+    status: 404,
+    code: "not_found",
+    message: "Kategoriya topilmadi",
+  })
+  await call(api.PUT("/app/product-categories/order", { body: { ids: [sweets.id, drinks.id] } }))
+  expect((await productCategories()).map((c) => c.name)).toEqual(["Shirinliklar", "Suvlar"])
+  expect(await failure(call(api.PUT("/app/product-categories/order", { body: { ids: [sweets.id] } })))).toMatchObject({ status: 409, code: "order_changed" })
+
+  await addProduct({ kind: "product", name: "Kola", unit: "dona", category_id: drinks.id })
+  expect(await failure(call(api.DELETE("/app/product-categories/{id}", categoryPath(drinks.id))))).toMatchObject({
+    status: 409,
+    code: "category_in_use",
+    message: "Bu kategoriyada 1 ta mahsulot bor",
+  })
+  await call(api.DELETE("/app/product-categories/{id}", categoryPath(sweets.id)))
+  expect((await productCategories()).map((c) => c.name)).toEqual(["Suvlar"])
+  await expect(addProductCategory("Shirinliklar")).resolves.toMatchObject({ name: "Shirinliklar" })
+
+  await signIn(VALI)
+  await chooseCompany(1)
+  expect((await productCategories()).map((c) => c.name)).toEqual(["Suvlar", "Shirinliklar"])
+  expect(await failure(addProductCategory("Non"))).toMatchObject({ status: 403, code: "forbidden" })
+  expect(await failure(call(api.DELETE("/app/product-categories/{id}", categoryPath(drinks.id))))).toMatchObject({ status: 403, code: "forbidden" })
+})
+
+test("a product is filed under a live category of its company and carries its name; a service takes none; the lists narrow by ?category_id=", async () => {
+  await signIn(ALI)
+  const drinks = await addProductCategory("Ichimliklar")
+  const cola = await addProduct({ kind: "product", name: "Kola", unit: "dona", category_id: drinks.id })
+  expect(cola).toMatchObject({ category_id: drinks.id, category_name: "Ichimliklar" })
+  const bread = await addProduct({ kind: "product", name: "Non", unit: "dona" })
+  expect(bread).toMatchObject({ category_id: null, category_name: null })
+  const breadPath = { params: { path: { id: bread.id } } }
+  expect(await call(api.PUT("/app/products/{id}", { ...breadPath, body: { name: "Non", unit: "dona", category_id: drinks.id } }))).toMatchObject({
+    category_name: "Ichimliklar",
+  })
+  expect(await call(api.PUT("/app/products/{id}", { ...breadPath, body: { name: "Non", unit: "dona" } }))).toMatchObject({ category_id: null, category_name: null })
+  expect(await failure(addProduct({ kind: "service", name: "Yetkazish", category_id: drinks.id }))).toMatchObject({
+    status: 400,
+    message: "Xizmatga kategoriya berilmaydi",
+  })
+  expect(await failure(addProduct({ kind: "product", name: "Fanta", unit: "dona", category_id: 999999 }))).toMatchObject({
+    status: 400,
+    message: "Kategoriya noto'g'ri",
+  })
+
+  const summary = (query: Record<string, string> = {}) => call(api.GET("/app/stock/summary", { params: { query } }))
+  const listed = async (query: Record<string, string> = {}) => [(await products(query)).items.map((p) => p.name), (await summary(query)).items.map((i) => i.name)]
+  expect(await listed()).toEqual([
+    ["Kola", "Non"],
+    ["Kola", "Non"],
+  ])
+  expect(await listed({ category_id: String(drinks.id) })).toEqual([["Kola"], ["Kola"]])
+  expect(await listed({ category_id: "none" })).toEqual([["Non"], ["Non"]])
+  for (const bad of ["abc", "0", "-1", "1.5"]) {
+    expect(await failure(products({ category_id: bad })), bad).toMatchObject({ status: 400, code: "validation_error", message: "Kategoriya noto'g'ri" })
+    expect(await failure(summary({ category_id: bad })), bad).toMatchObject({ status: 400, code: "validation_error", message: "Kategoriya noto'g'ri" })
+  }
+  expect((await summary()).items.map((i) => i.category_name)).toEqual(["Ichimliklar", null])
+})
