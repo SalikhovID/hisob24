@@ -417,11 +417,12 @@ func (q *Queries) ListStockByLocation(ctx context.Context, arg ListStockByLocati
 }
 
 const listStockSummary = `-- name: ListStockSummary :many
-SELECT p.id, p.name, p.sku, p.unit, p.is_active,
+SELECT p.id, p.name, p.sku, p.unit, p.is_active, c.name AS category_name,
        COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
                  WHERE sm.product_id = p.id AND sm.location_id = ANY($1::bigint[])), 0)::numeric(14,3) AS total,
        lp.price AS last_price, COALESCE(lp.currency_id, 0)::bigint AS last_price_currency_id
 FROM products p
+LEFT JOIN product_categories c ON c.id = p.category_id
 LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
                    WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
                    ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
@@ -447,6 +448,7 @@ type ListStockSummaryRow struct {
 	Sku                 *string
 	Unit                *string
 	IsActive            bool
+	CategoryName        *string
 	Total               pgtype.Numeric
 	LastPrice           pgtype.Numeric
 	LastPriceCurrencyID int64
@@ -457,7 +459,8 @@ type ListStockSummaryRow struct {
 // by name whatever the case: each with its stock summed over the locations
 // given, its last purchase price with its currency (as GetProduct's) and
 // the stock's value at it. search, escaped for ILIKE, is looked for in the
-// name and in the SKU; NULL leaves it out.
+// name and in the SKU; NULL leaves it out. category_name is the name of
+// the product's category, NULL with none.
 func (q *Queries) ListStockSummary(ctx context.Context, arg ListStockSummaryParams) ([]ListStockSummaryRow, error) {
 	rows, err := q.db.Query(ctx, listStockSummary,
 		arg.LocationIds,
@@ -479,6 +482,7 @@ func (q *Queries) ListStockSummary(ctx context.Context, arg ListStockSummaryPara
 			&i.Sku,
 			&i.Unit,
 			&i.IsActive,
+			&i.CategoryName,
 			&i.Total,
 			&i.LastPrice,
 			&i.LastPriceCurrencyID,

@@ -27,10 +27,12 @@ type StockSummaryRow struct {
 	SKU       *string
 	Unit      string
 	Active    bool
-	Locations []LocationQuantity
-	Total     string
-	LastPrice *Money
-	Value     *string
+	// CategoryName is the name of the product's category, nil with none.
+	CategoryName *string
+	Locations    []LocationQuantity
+	Total        string
+	LastPrice    *Money
+	Value        *string
 }
 
 // StockSummaryPage is one page of the «Qoldiq» table.
@@ -89,7 +91,7 @@ func (s *Service) StockSummary(ctx context.Context, scope Scope, in StockSummary
 	}
 	out.Total = total
 	for _, row := range rows {
-		item := StockSummaryRow{ProductID: row.ID, Name: row.Name, SKU: row.Sku, Active: row.IsActive, Total: quantity(row.Total)}
+		item := StockSummaryRow{ProductID: row.ID, Name: row.Name, SKU: row.Sku, Active: row.IsActive, CategoryName: row.CategoryName, Total: quantity(row.Total)}
 		if row.Unit != nil {
 			item.Unit = *row.Unit
 		}

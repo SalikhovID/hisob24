@@ -760,7 +760,8 @@ type Querier interface {
 	// by name whatever the case: each with its stock summed over the locations
 	// given, its last purchase price with its currency (as GetProduct's) and
 	// the stock's value at it. search, escaped for ILIKE, is looked for in the
-	// name and in the SKU; NULL leaves it out.
+	// name and in the SKU; NULL leaves it out. category_name is the name of
+	// the product's category, NULL with none.
 	ListStockSummary(ctx context.Context, arg ListStockSummaryParams) ([]ListStockSummaryRow, error)
 	// A page of the company's suppliers, the active or the inactive ones, by
 	// name whatever the case, without the deleted, each with its balance.

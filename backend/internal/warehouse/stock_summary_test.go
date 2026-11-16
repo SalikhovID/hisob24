@@ -3,6 +3,7 @@ package warehouse
 import (
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,4 +81,37 @@ func ids(page StockSummaryPage) []int64 {
 		out = append(out, row.ProductID)
 	}
 	return out
+}
+
+// addCategory adds a product category to the company and returns its id.
+func addCategory(t *testing.T, pool *pgxpool.Pool, companyID int64, name string) int64 {
+	t.Helper()
+	var id int64
+	require.NoError(t, pool.QueryRow(t.Context(), "INSERT INTO product_categories (company_id, name, position) VALUES ($1, $2, 1) RETURNING id", companyID, name).Scan(&id))
+	return id
+}
+
+// file puts the product under the category.
+func file(t *testing.T, pool *pgxpool.Pool, productID, categoryID int64) {
+	t.Helper()
+	_, err := pool.Exec(t.Context(), "UPDATE products SET category_id = $1 WHERE id = $2", categoryID, productID)
+	require.NoError(t, err)
+}
+
+// Each product of «Qoldiq» tells its category's name, none with none
+// (logic/warehouse.md, section 5).
+func TestStockSummaryTellsEachProductsCategory(t *testing.T) {
+	s, pool := newService(t)
+	ctx := t.Context()
+	m := newMarket(t, s, pool)
+	file(t, pool, m.olma, addCategory(t, pool, m.company, "Mevalar"))
+
+	page, err := s.StockSummary(ctx, m.scope(), StockSummaryInput{Page: 1})
+
+	require.NoError(t, err)
+	categories := map[int64]*string{}
+	for _, row := range page.Items {
+		categories[row.ProductID] = row.CategoryName
+	}
+	assert.Equal(t, map[int64]*string{m.olma: ptr("Mevalar"), m.nok: nil}, categories)
 }

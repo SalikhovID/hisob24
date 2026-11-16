@@ -113,12 +113,14 @@ ORDER BY sm.product_id, t.doc_at, t.id, (sm.quantity < 0) DESC, sm.id;
 -- by name whatever the case: each with its stock summed over the locations
 -- given, its last purchase price with its currency (as GetProduct's) and
 -- the stock's value at it. search, escaped for ILIKE, is looked for in the
--- name and in the SKU; NULL leaves it out.
-SELECT p.id, p.name, p.sku, p.unit, p.is_active,
+-- name and in the SKU; NULL leaves it out. category_name is the name of
+-- the product's category, NULL with none.
+SELECT p.id, p.name, p.sku, p.unit, p.is_active, c.name AS category_name,
        COALESCE((SELECT sum(sm.quantity) FROM stock_moves sm
                  WHERE sm.product_id = p.id AND sm.location_id = ANY(sqlc.arg('location_ids')::bigint[])), 0)::numeric(14,3) AS total,
        lp.price AS last_price, COALESCE(lp.currency_id, 0)::bigint AS last_price_currency_id
 FROM products p
+LEFT JOIN product_categories c ON c.id = p.category_id
 LEFT JOIN LATERAL (SELECT i.price, t.currency_id FROM transaction_items i JOIN transactions t ON t.id = i.transaction_id
                    WHERE i.product_id = p.id AND t.deleted_at IS NULL AND t.kind IN ('purchase', 'opening_stock') AND i.price IS NOT NULL
                    ORDER BY t.doc_at DESC, t.id DESC LIMIT 1) lp ON true
